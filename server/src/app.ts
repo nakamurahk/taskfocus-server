@@ -33,18 +33,18 @@ initializeApp({
 const allowedOrigins = [
   'http://localhost:5173',
   'http://172.25.112.66:5173',
-  'https://taskfocus-client.onrender.com'
+  'https://taskfocus-frontend.onrender.com'
 ];
 
 app.use(cors({
-  origin: process.env.CLIENT_URL,
-  credentials: true
-}));
-
-// OPTIONSリクエスト用（プリフライト対応）
-app.options('*', cors({
-  origin: process.env.CLIENT_URL,
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
 }));
 
 // JSONパーサーの設定
