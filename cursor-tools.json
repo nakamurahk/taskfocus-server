@@ -1,0 +1,37 @@
+{
+  "tools": [
+    {
+      "name": "edit_file",
+      "description": "ファイルの作成・編集を行います",
+      "parameters": {
+        "target_file": "string",
+        "instructions": "string",
+        "code_edit": "string"
+      }
+    },
+    {
+      "name": "delete_file",
+      "description": "ファイルを削除します",
+      "parameters": {
+        "target_file": "string"
+      }
+    },
+    {
+      "name": "reapply",
+      "description": "編集を再適用します",
+      "parameters": {
+        "target_file": "string",
+        "instructions": "string",
+        "code_edit": "string"
+      }
+    },
+    {
+      "name": "run_terminal_cmd",
+      "description": "ターミナルコマンドを実行します",
+      "parameters": {
+        "command": "string",
+        "is_background": "boolean"
+      }
+    }
+  ]
+}
