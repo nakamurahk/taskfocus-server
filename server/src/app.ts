@@ -6,6 +6,8 @@ import { getAuth } from 'firebase-admin/auth';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import { Pool } from 'pg';
+import { initDb } from './initDb';
+
 
 // Request型の拡張
 declare global {
@@ -19,7 +21,7 @@ declare global {
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = 5432;
 
 // Firebase Admin SDKの初期化
 initializeApp({
@@ -46,6 +48,13 @@ app.use(cors({
   },
   credentials: true,
 }));
+
+(async () => {
+  await initDb(); // ← ここで一度だけ実行
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+})();
 
 // JSONパーサーの設定
 app.use(express.json());
