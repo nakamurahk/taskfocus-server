@@ -240,7 +240,7 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
   const handleEditCustomView = async (viewId: string) => {
     try {
       // データベースから最新の情報を取得
-      const view = await customViewApi.getCustomView(viewId);
+      const view = await customViewApi.getCustomView(`custom_${viewId}`);
       
       setEditingViewId(viewId);
       setCustomName(view.name);
@@ -271,7 +271,7 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
       });
 
       // APIを呼び出してカスタムビューを更新
-      const updatedView = await customViewApi.updateCustomView(editingViewId, {
+      const updatedView = await customViewApi.updateCustomView(`custom_${editingViewId}`, {
         name: customName,
         filter_due: customDue.length > 0 ? customDue[0] : '',
         filters_importance: customImportance,
