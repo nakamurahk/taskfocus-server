@@ -678,6 +678,9 @@ app.patch('/focus-view-settings', authenticateToken, async (req, res) => {
           throw new Error('無効な設定データ');
         }
 
+        // Boolean値をIntegerに変換
+        const visibleInt = setting.visible ? 1 : 0;
+
         await client.query(`
           UPDATE focus_view_settings
           SET 
@@ -686,7 +689,7 @@ app.patch('/focus-view-settings', authenticateToken, async (req, res) => {
             updated_at = CURRENT_TIMESTAMP
           WHERE id = $3 AND user_id = $4
         `, [
-          setting.visible ? 1 : 0,
+          visibleInt,
           setting.view_order,
           setting.id,
           userId
@@ -710,7 +713,7 @@ app.patch('/focus-view-settings', authenticateToken, async (req, res) => {
         ORDER BY view_order ASC
       `, [userId]);
 
-      // レスポンスデータの整形
+      // レスポンスデータの整形（IntegerをBooleanに変換）
       const updatedSettings = result.rows.map(setting => ({
         id: setting.id,
         view_key: setting.view_key,
