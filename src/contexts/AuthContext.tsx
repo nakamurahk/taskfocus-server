@@ -233,9 +233,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 初期データの作成
       await createInitialData(result.user.uid);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google login error:', error);
-      setError(error instanceof Error ? error.message : 'Googleログイン中にエラーが発生しました');
+      // ポップアップが閉じられた場合はエラーメッセージを表示しない
+      if (error.code !== 'auth/popup-closed-by-user') {
+        setError(error instanceof Error ? error.message : 'Googleログイン中にエラーが発生しました');
+      }
       throw error;
     } finally {
       setLoading(false);

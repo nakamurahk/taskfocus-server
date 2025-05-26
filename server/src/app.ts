@@ -32,11 +32,22 @@ initializeApp({
   })
 });
 
-const allowedOrigin = 'https://taskfocus-frontend.onrender.com';
+const allowedOrigins = [
+  'https://taskfocus-frontend.onrender.com',
+  'https://fitty2501.xyz',
+  'https://www.fitty2501.xyz'
+];
 
 // CORSの設定を修正
 app.use(cors({
-  origin: allowedOrigin,
+  origin: function(origin, callback) {
+    // 開発環境などoriginがundefinedの場合も許可
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -44,7 +55,13 @@ app.use(cors({
 
 // プリフライト対応（OPTIONS）
 app.options('*', cors({
-  origin: allowedOrigin,
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
