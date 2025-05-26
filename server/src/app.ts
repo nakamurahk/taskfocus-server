@@ -617,6 +617,9 @@ app.patch('/focus-view-settings/:id', authenticateToken, async (req, res) => {
   try {
     const client = await pool.connect();
     try {
+      // visibleの値を確実に0/1に変換
+      const visibleInt = visible === true ? 1 : 0;
+
       const result = await client.query(`
         UPDATE focus_view_settings
         SET 
@@ -626,7 +629,7 @@ app.patch('/focus-view-settings/:id', authenticateToken, async (req, res) => {
         WHERE id = $3 AND user_id = $4
         RETURNING *
       `, [
-        visible ? 1 : 0,
+        visibleInt,
         view_order,
         settingId,
         userId
@@ -636,7 +639,7 @@ app.patch('/focus-view-settings/:id', authenticateToken, async (req, res) => {
         return res.status(404).json({ error: '設定が見つかりません' });
       }
 
-      // レスポンスデータの整形
+      // レスポンスデータの整形（IntegerをBooleanに変換）
       const updatedSetting = result.rows[0];
       res.json({
         id: updatedSetting.id,
