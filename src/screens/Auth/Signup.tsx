@@ -6,11 +6,11 @@ const Signup: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [signupSuccess, setSignupSuccess] = useState(false); // 追加: 登録成功状態
+  const [signupSuccess, setSignupSuccess] = useState(false);
   const { user, signup, error: authError, loading } = useAuth();
   const navigate = useNavigate();
 
-  // 追加: ユーザーがログイン済みの場合はホーム画面に遷移
+  // ユーザーがログイン済みの場合はホーム画面に遷移
   useEffect(() => {
     if (user) {
       navigate('/');
@@ -21,17 +21,15 @@ const Signup: React.FC = () => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      // パスワードが一致しない場合のエラー処理（実装が必要）
       console.error('パスワードが一致しません');
       return;
     }
 
     try {
       await signup(email, password);
-      // 修正: 登録成功したらメール認証待ち状態にする
+      // 登録成功後にメッセージ表示状態に
       setSignupSuccess(true);
     } catch (err) {
-      // エラーはAuthContextで処理される
       console.error('Signup error:', err);
     }
   };
@@ -43,28 +41,31 @@ const Signup: React.FC = () => {
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
             <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-              登録完了
+              📧 認証メールを送信しました
             </h2>
-            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
-              <div className="text-green-800">
-                <p className="text-sm">
-                  登録ありがとうございます！
-                </p>
-                <p className="text-sm mt-2">
-                  認証メールを <strong>{email}</strong> に送信しました。
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="text-blue-800">
+                <p className="text-sm font-medium">
+                  <strong>{email}</strong> に認証メールを送信しました。
                 </p>
                 <p className="text-sm mt-2">
                   メール内のリンクをクリックして、アカウントを有効化してください。
                 </p>
+                <p className="text-sm mt-2 text-blue-600">
+                  ※ 迷惑メールフォルダもご確認ください
+                </p>
               </div>
             </div>
-            <div className="mt-6">
+            <div className="mt-6 space-y-3">
               <button
                 onClick={() => navigate('/login')}
                 className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 ログイン画面に戻る
               </button>
+              <p className="text-xs text-gray-500">
+                認証完了後、上記ボタンでログイン画面に移動してください
+              </p>
             </div>
           </div>
         </div>
