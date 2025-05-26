@@ -2,14 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-const Signup: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [signupSuccess, setSignupSuccess] = useState(false);
-  const { user, signup, error: authError, loading } = useAuth();
-  const navigate = useNavigate();
-
+const signup = async (email: string, password: string) => {
+  try {
+    console.log('🔄 signup開始:', email);
+    setLoading(true);
+    setError(null);
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    console.log('✅ ユーザー作成完了:', user.uid);
+    
+    await sendEmailVerification(user);
+    console.log('✅ 認証メール送信完了');
+    
+    await signOut(auth);
+    console.log('✅ 強制ログアウト完了');
+  } catch (error) {
+    console.error('❌ signup error:', error);
+    setError(error instanceof Error ? error.message : 'サインアップ中にエラーが発生しました');
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
   // ユーザーがログイン済みの場合はホーム画面に遷移
   useEffect(() => {
     if (user) {
@@ -24,13 +38,14 @@ const Signup: React.FC = () => {
       console.error('パスワードが一致しません');
       return;
     }
-
+  
     try {
+      console.log('🔄 handleSubmit開始');
       await signup(email, password);
-      // 登録成功後にメッセージ表示状態に
+      console.log('✅ signup関数完了 - setSignupSuccess(true)実行');
       setSignupSuccess(true);
     } catch (err) {
-      console.error('Signup error:', err);
+      console.error('❌ handleSubmit error:', err);
     }
   };
 
