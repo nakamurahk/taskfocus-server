@@ -905,7 +905,7 @@ app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
   }
   const userId = req.user.uid;
   const viewId = req.params.id;
-  const { name, focus_view_limit } = req.body;
+  const { name, filter_due, filters_importance, filters_hurdle } = req.body;
 
   try {
     const client = await pool.connect();
@@ -923,28 +923,48 @@ app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
         return res.status(404).json({ error: 'カスタムビューが見つかりません' });
       }
 
-      // nameが提供されている場合のみ更新
-      if (name) {
-        await client.query(`
-          UPDATE custom_focus_views
-          SET 
-            name = $1,
-            updated_at = CURRENT_TIMESTAMP
-          WHERE id = $2 AND user_id = $3
-        `, [name, viewId, userId]);
-      }
+      // カスタムビューの更新
+      const result = await client.query(`
+        UPDATE custom_focus_views
+        SET 
+          name = $1,
+          filter_due = $2,
+          filters_importance = $3,
+          filters_hurdle = $4,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $5 AND user_id = $6
+        RETURNING *
+      `, [
+        name,
+        filter_due || null,
+        JSON.stringify(filters_importance || []),
+        JSON.stringify(filters_hurdle || []),
+        viewId,
+        userId
+      ]);
 
-      // focus_view_limitが提供されている場合のみ更新
-      if (focus_view_limit !== undefined) {
-        await client.query(`
-          UPDATE user_settings
-          SET focus_view_limit = $1
-          WHERE user_id = $2
-        `, [focus_view_limit, userId]);
-      }
+      // focus_view_settingsのラベルも更新
+      await client.query(`
+        UPDATE focus_view_settings
+        SET 
+          label = $1,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE view_key = $2 AND user_id = $3
+      `, [name, `custom_${viewId}`, userId]);
 
       await client.query('COMMIT');
-      res.json({ id: viewId, name, focus_view_limit });
+
+      // レスポンスデータの整形
+      const updatedView = result.rows[0];
+      res.json({
+        id: updatedView.id,
+        name: updatedView.name,
+        filters: {
+          due: updatedView.filter_due ? [updatedView.filter_due] : [],
+          importance: JSON.parse(updatedView.filters_importance || '[]'),
+          hurdle: JSON.parse(updatedView.filters_hurdle || '[]')
+        }
+      });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;

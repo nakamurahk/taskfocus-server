@@ -272,6 +272,21 @@ export const customViewApi = {
     return response.json();
   },
 
+  // カスタムビューの詳細取得
+  getCustomView: async (id: string) => {
+    const token = await auth.currentUser?.getIdToken();
+    const response = await fetch(`${API_BASE_URL}/custom-views/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error('カスタムビューの取得に失敗しました');
+    }
+    return response.json();
+  },
+
   // カスタムビューの追加
   addCustomView: async (view: {
     name: string;

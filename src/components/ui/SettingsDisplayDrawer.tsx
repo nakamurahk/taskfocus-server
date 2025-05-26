@@ -237,17 +237,22 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
     // ★ ここでAPIは呼ばず、保存時にまとめて送信
   };
 
-  const handleEditCustomView = (viewId: string) => {
-    const customView = customFocusViews.find(v => v.id === viewId);
-    if (!customView) return;
-
-    setEditingViewId(viewId);
-    setCustomName(customView.name);
-    setCustomDue(customView.filters.due);
-    setCustomImportance(customView.filters.importance);
-    setCustomHurdle(customView.filters.hurdle);
-    setIsEditMode(true);
-    setIsCustomModalOpen(true);
+  const handleEditCustomView = async (viewId: string) => {
+    try {
+      // データベースから最新の情報を取得
+      const view = await customViewApi.getCustomView(viewId);
+      
+      setEditingViewId(viewId);
+      setCustomName(view.name);
+      setCustomDue(view.filters.due);
+      setCustomImportance(view.filters.importance);
+      setCustomHurdle(view.filters.hurdle);
+      setIsEditMode(true);
+      setIsCustomModalOpen(true);
+    } catch (error) {
+      console.error('カスタムビューの取得に失敗しました:', error);
+      toast.error('カスタムビューの取得に失敗しました');
+    }
   };
 
   const handleUpdateCustomView = async () => {
