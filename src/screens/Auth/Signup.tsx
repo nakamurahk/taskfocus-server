@@ -6,8 +6,7 @@ const Signup: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
-  const [signupSuccess, setSignupSuccess] = useState(false); // 追加: 登録成功状態
+  const [signupSuccess, setSignupSuccess] = useState(false);
   const { user, signup, error: authError, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -22,17 +21,14 @@ const Signup: React.FC = () => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      // パスワードが一致しない場合のエラー処理（実装が必要）
       console.error('パスワードが一致しません');
       return;
     }
 
     try {
-      await signup(email, password, name);
-      // 修正: 登録成功したらメール認証待ち状態にする
+      await signup(email, password);
       setSignupSuccess(true);
     } catch (err) {
-      // エラーはAuthContextで処理される
       console.error('Signup error:', err);
     }
   };
@@ -86,22 +82,6 @@ const Signup: React.FC = () => {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="name" className="sr-only">
-                お名前
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                disabled={loading}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder="お名前"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div>
               <label htmlFor="email" className="sr-only">
                 メールアドレス
               </label>
@@ -111,7 +91,7 @@ const Signup: React.FC = () => {
                 type="email"
                 required
                 disabled={loading}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="メールアドレス"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

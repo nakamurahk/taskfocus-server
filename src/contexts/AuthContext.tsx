@@ -23,7 +23,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
-  signup: (email: string, password: string, name: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
@@ -138,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   //   checkRedirectResult();
   // }, []);
 
-  const signup = async (email: string, password: string, name: string) => {
+  const signup = async (email: string, password: string) => {
     try {
       setLoading(true);
       setError(null);
