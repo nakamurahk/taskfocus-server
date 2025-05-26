@@ -21,7 +21,7 @@ declare global {
 dotenv.config();
 
 const app = express();
-const port = const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3001;
 
 // Firebase Admin SDKの初期化
 initializeApp({
