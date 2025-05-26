@@ -529,21 +529,28 @@ app.get('/focus-view-settings', authenticateToken, async (req, res) => {
   try {
     const client = await pool.connect();
     try {
-      // 既存の設定を確認
+      // 特定のビューキーの存在確認
       const checkResult = await client.query(`
-        SELECT COUNT(*) as count 
+        SELECT view_key 
         FROM focus_view_settings 
-        WHERE user_id = $1
+        WHERE user_id = $1 AND view_key IN ('toray', 'deadline')
       `, [userId]);
 
-      // 設定が存在しない場合は初期値を登録
-      if (checkResult.rows[0].count === '0') {
+      const existingKeys = checkResult.rows.map(row => row.view_key);
+      const missingKeys = ['toray', 'deadline'].filter(key => !existingKeys.includes(key));
+
+      // 存在しないビューキーに対して初期値を登録
+      if (missingKeys.length > 0) {
+        const insertValues = missingKeys.map((key, index) => {
+          const label = key === 'toray' ? '今日の締め切り' : '期限を過ぎたタスク';
+          const order = key === 'toray' ? 1 : 2;
+          return `($1, '${key}', '${label}', 1, ${order}, CURRENT_TIMESTAMP)`;
+        }).join(',');
+
         await client.query(`
           INSERT INTO focus_view_settings 
             (user_id, view_key, label, visible, view_order, created_at)
-          VALUES 
-            ($1, 'toray', '今日の締め切り', 1, 1, CURRENT_TIMESTAMP),
-            ($1, 'deadline', '期限を過ぎたタスク', 1, 2, CURRENT_TIMESTAMP)
+          VALUES ${insertValues}
         `, [userId]);
       }
 
