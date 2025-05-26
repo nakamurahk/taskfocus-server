@@ -192,12 +192,22 @@ const authenticateToken = async (req: express.Request, res: express.Response, ne
     }
 
     // ★ focus_view_settingsの初期化
-    const settings = await pool.query('SELECT * FROM focus_view_settings WHERE user_id = $1', [uid]);
-    if (settings.rows.length === 0) {
+    const settings = await pool.query('SELECT view_key FROM focus_view_settings WHERE user_id = $1', [uid]);
+    const existingKeys = settings.rows.map(row => row.view_key);
+    const requiredKeys = ['toray', 'deadline'];
+    const missingKeys = requiredKeys.filter(key => !existingKeys.includes(key));
+
+    if (missingKeys.length > 0) {
+      const insertValues = missingKeys.map((key) => {
+        const label = key === 'toray' ? '今日の締め切り' : '期限を過ぎたタスク';
+        const order = key === 'toray' ? 1 : 2;
+        return `($1, '${key}', '${label}', 1, ${order})`;
+      }).join(',');
+
       await pool.query(`
         INSERT INTO focus_view_settings (user_id, view_key, label, visible, view_order)
-        VALUES ($1, $2, $3, $4, $5)
-      `, [uid, 'default', 'デフォルト', 1, 0]);
+        VALUES ${insertValues}
+      `, [uid]);
     }
 
     next();
