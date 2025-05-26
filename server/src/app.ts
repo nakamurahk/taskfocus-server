@@ -6,7 +6,6 @@ import { getAuth } from 'firebase-admin/auth';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import { Pool } from 'pg';
-import { initDb } from './initDb';
 
 
 // Request型の拡張
@@ -48,18 +47,6 @@ app.options('*', cors({
 // JSONパーサーの設定
 app.use(express.json());
 
-(async () => {
-  try {
-    await initDb();
-    console.log('✅ DB initialized');
-  } catch (err) {
-    console.error('❌ DB init failed:', err);
-  }
-
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
-})();
 
 // 全APIレスポンスにキャッシュ無効化ヘッダーを付与
 app.use((req, res, next) => {
@@ -342,8 +329,14 @@ app.patch('/tasks/:id', authenticateToken, async (req, res) => {
       const values: any[] = [];
       let idx = 1;
       for (const key in updates) {
-        fields.push(`${key} = $${idx}`);
-        values.push(updates[key]);
+        // memoフィールドの特別処理
+        if (key === 'memo') {
+          fields.push(`${key} = $${idx}`);
+          values.push(updates[key] || null);  // 空文字列やundefinedの場合はnullに
+        } else {
+          fields.push(`${key} = $${idx}`);
+          values.push(updates[key]);
+        }
         idx++;
       }
       fields.push(`updated_at = CURRENT_TIMESTAMP`);
@@ -355,7 +348,7 @@ app.patch('/tasks/:id', authenticateToken, async (req, res) => {
       if (result.rowCount === 0) {
         return res.status(404).json({ error: 'タスクが見つかりません' });
       }
-      res.json({ ...updates, id: taskId });
+      res.json(result.rows[0]);  // 更新されたデータを返却
     } finally {
       client.release();
     }
