@@ -1,29 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  signOut
+} from 'firebase/auth';
+import { auth } from '../../lib/firebase';
 
-const signup = async (email: string, password: string) => {
-  try {
-    console.log('🔄 signup開始:', email);
-    setLoading(true);
-    setError(null);
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    console.log('✅ ユーザー作成完了:', user.uid);
-    
-    await sendEmailVerification(user);
-    console.log('✅ 認証メール送信完了');
-    
-    await signOut(auth);
-    console.log('✅ 強制ログアウト完了');
-  } catch (error) {
-    console.error('❌ signup error:', error);
-    setError(error instanceof Error ? error.message : 'サインアップ中にエラーが発生しました');
-    throw error;
-  } finally {
-    setLoading(false);
-  }
-};
+const Signup: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const signup = async (email: string, password: string) => {
+    try {
+      console.log('🔄 signup開始:', email);
+      setLoading(true);
+      setError(null);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      console.log('✅ ユーザー作成完了:', user.uid);
+      
+      await sendEmailVerification(user);
+      console.log('✅ 認証メール送信完了');
+      
+      await signOut(auth);
+      console.log('✅ 強制ログアウト完了');
+    } catch (error) {
+      console.error('❌ signup error:', error);
+      setError(error instanceof Error ? error.message : 'サインアップ中にエラーが発生しました');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ユーザーがログイン済みの場合はホーム画面に遷移
   useEffect(() => {
     if (user) {
@@ -157,8 +174,8 @@ const signup = async (email: string, password: string) => {
             </div>
           )}
 
-          {authError && (
-            <div className="text-red-500 text-sm text-center">{authError}</div>
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
           )}
 
           <div>
