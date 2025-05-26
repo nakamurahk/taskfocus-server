@@ -797,8 +797,3 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   logger.error('アプリケーションエラー:', err);
   res.status(500).json({ error: 'Internal Server Error' });
 });
-
-// サーバー起動
-app.listen(port, () => {
-  console.log(`サーバーがポート${port}で起動しました`);
-}); 
