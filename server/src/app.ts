@@ -651,6 +651,51 @@ app.patch('/user-settings', authenticateToken, async (req, res) => {
   }
 });
 
+// メディケーションモードの更新
+app.patch('/user-settings/medication-effect-mode', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: '認証が必要です' });
+  }
+  const userId = req.user.uid;
+  const { is_medication_taken, effect_start_time, effect_duration_minutes, time_to_max_effect_minutes, time_to_fade_minutes } = req.body;
+
+  try {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(`
+        UPDATE user_settings
+        SET 
+          is_medication_taken = $1,
+          effect_start_time = $2,
+          effect_duration_minutes = $3,
+          time_to_max_effect_minutes = $4,
+          time_to_fade_minutes = $5,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = $6
+        RETURNING *
+      `, [
+        is_medication_taken ? 1 : 0,
+        effect_start_time,
+        effect_duration_minutes,
+        time_to_max_effect_minutes,
+        time_to_fade_minutes,
+        userId
+      ]);
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'ユーザー設定が見つかりません' });
+      }
+
+      res.json(result.rows[0]);
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('❌ メディケーションモード更新エラー:', err);
+    res.status(500).json({ error: 'サーバーエラー', details: err });
+  }
+});
+
 // タスクの並び替え
 app.patch('/tasks/reorder', authenticateToken, async (req, res) => {
   if (!req.user) {
