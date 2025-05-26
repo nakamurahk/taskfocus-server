@@ -1318,6 +1318,64 @@ app.patch('/user-settings/medication-config', authenticateToken, async (req, res
   }
 });
 
+// カスタムビューの詳細取得
+app.get('/custom-views/:id', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: '認証が必要です' });
+  }
+  const userId = req.user.uid;
+  const viewId = req.params.id;
+
+  try {
+    const client = await pool.connect();
+    try {
+      // カスタムビューの情報を取得
+      const result = await client.query(`
+        SELECT 
+          cfv.id,
+          cfv.name,
+          cfv.filter_due,
+          cfv.filters_importance,
+          cfv.filters_hurdle,
+          cfv.created_at,
+          cfv.updated_at,
+          fvs.view_key,
+          fvs.visible,
+          fvs.view_order
+        FROM custom_focus_views cfv
+        LEFT JOIN focus_view_settings fvs ON fvs.view_key = CONCAT('custom_', cfv.id)
+        WHERE cfv.id = $1 AND cfv.user_id = $2
+      `, [viewId, userId]);
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'カスタムビューが見つかりません' });
+      }
+
+      // レスポンスデータの整形
+      const view = result.rows[0];
+      const formattedView = {
+        id: view.id,
+        name: view.name,
+        view_key: view.view_key,
+        visible: view.visible === 1,
+        view_order: view.view_order,
+        filter_due: view.filter_due ? JSON.parse(view.filter_due) : null,
+        filters_importance: JSON.parse(view.filters_importance),
+        filters_hurdle: JSON.parse(view.filters_hurdle),
+        created_at: view.created_at,
+        updated_at: view.updated_at
+      };
+
+      res.json(formattedView);
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('❌ カスタムビュー詳細取得エラー:', err);
+    res.status(500).json({ error: 'サーバーエラー', details: err });
+  }
+});
+
 // ルートエンドポイント
 app.get('/', (req, res) => {
   res.json({ 
