@@ -332,23 +332,42 @@ app.patch('/tasks/:id', authenticateToken, async (req, res) => {
         // memoフィールドの特別処理
         if (key === 'memo') {
           fields.push(`${key} = $${idx}`);
-          values.push(updates[key] || null);  // 空文字列やundefinedの場合はnullに
+          values.push(updates[key] === '' ? null : updates[key]);  // 空文字列の場合はnullに
         } else {
           fields.push(`${key} = $${idx}`);
           values.push(updates[key]);
         }
         idx++;
       }
+
+      // updated_atを必ず更新
       fields.push(`updated_at = CURRENT_TIMESTAMP`);
       values.push(taskId);
       values.push(userId);
-      const sql = `UPDATE tasks SET ${fields.join(', ')} WHERE id = $${idx} AND user_id = $${idx + 1} AND is_deleted = 0 RETURNING *`;
+
+      const sql = `
+        UPDATE tasks 
+        SET ${fields.join(', ')} 
+        WHERE id = $${idx} AND user_id = $${idx + 1} AND is_deleted = 0 
+        RETURNING *
+      `;
+
+      console.log('SQL:', sql);  // デバッグ用
+      console.log('Values:', values);  // デバッグ用
+
       const result = await client.query(sql, values);
       
       if (result.rowCount === 0) {
         return res.status(404).json({ error: 'タスクが見つかりません' });
       }
-      res.json(result.rows[0]);  // 更新されたデータを返却
+
+      // 更新されたデータを整形して返却
+      const updatedTask = result.rows[0];
+      res.json({
+        ...updatedTask,
+        memo: updatedTask.memo || '',  // nullの場合は空文字列に変換
+        updated_at: updatedTask.updated_at
+      });
     } finally {
       client.release();
     }
