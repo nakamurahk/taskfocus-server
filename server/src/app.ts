@@ -33,7 +33,6 @@ initializeApp({
 });
 
 const allowedOrigins = [
-  'https://taskfocus-frontend.onrender.com',
   'https://fitty2501.xyz',
   'https://www.fitty2501.xyz'
 ];
