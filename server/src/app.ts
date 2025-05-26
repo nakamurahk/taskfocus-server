@@ -813,6 +813,10 @@ app.post('/custom-views', authenticateToken, async (req, res) => {
     try {
       await client.query('BEGIN');
 
+      // カスタムビューのIDを生成
+      const viewId = crypto.randomUUID();
+      const viewKey = `custom_${viewId}`; // カスタムビュー用の一意のview_keyを生成
+
       // カスタムビューの作成
       const viewResult = await client.query(`
         INSERT INTO custom_focus_views (
@@ -831,12 +835,35 @@ app.post('/custom-views', authenticateToken, async (req, res) => {
           $6
         ) RETURNING *
       `, [
-        crypto.randomUUID(), // UUIDを生成
+        viewId,
         userId,
         name,
         filter_due || null,  // 空文字列の場合はnull
         JSON.stringify(filters_importance || []),
         JSON.stringify(filters_hurdle || [])
+      ]);
+
+      // focus_view_settingsの作成
+      await client.query(`
+        INSERT INTO focus_view_settings (
+          user_id,
+          view_key,
+          label,
+          visible,
+          view_order
+        ) VALUES (
+          $1,
+          $2,
+          $3,
+          $4,
+          $5
+        )
+      `, [
+        userId,
+        viewKey,
+        name,
+        1, // デフォルトで表示
+        focus_view_limit || 1 // デフォルトの表示順
       ]);
 
       // user_settingsのfocus_view_limitを更新
@@ -854,6 +881,7 @@ app.post('/custom-views', authenticateToken, async (req, res) => {
       const createdView = viewResult.rows[0];
       res.status(201).json({
         ...createdView,
+        view_key: viewKey,
         filter_due: createdView.filter_due || '',
         filters_importance: JSON.parse(createdView.filters_importance),
         filters_hurdle: JSON.parse(createdView.filters_hurdle)
