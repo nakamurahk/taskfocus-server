@@ -1064,6 +1064,7 @@ app.patch('/user-settings', authenticateToken, async (req, res) => {
         values.push(value);
         idx++;
       }
+      fields.push(`updated_at = CURRENT_TIMESTAMP`);
       values.push(userId);
       const sql = `UPDATE user_settings SET ${fields.join(', ')} WHERE user_id = $${idx} RETURNING *`;
       const result = await client.query(sql, values);
@@ -1077,6 +1078,40 @@ app.patch('/user-settings', authenticateToken, async (req, res) => {
     }
   } catch (err) {
     console.error('❌ ユーザー設定更新エラー:', err);
+    res.status(500).json({ error: 'サーバーエラー', details: err });
+  }
+});
+
+// viewModeの更新用エンドポイント
+app.patch('/user-settings/view-mode', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: '認証が必要です' });
+  }
+  const userId = req.user.uid;
+  const { viewMode } = req.body;
+
+  try {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(`
+        UPDATE user_settings
+        SET 
+          "viewMode" = $1,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = $2
+        RETURNING *
+      `, [viewMode, userId]);
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'ユーザー設定が見つかりません' });
+      }
+
+      res.json(result.rows[0]);
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('❌ viewMode更新エラー:', err);
     res.status(500).json({ error: 'サーバーエラー', details: err });
   }
 });
