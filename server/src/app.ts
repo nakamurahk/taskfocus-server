@@ -1354,34 +1354,24 @@ app.get('/custom-views/:id', authenticateToken, async (req, res) => {
       // レスポンスデータの整形
       const view = result.rows[0];
       
-      // フィルター情報のパースと整形
-      const filterDue = view.filter_due ? JSON.parse(view.filter_due) : null;
-      const filtersImportance = JSON.parse(view.filters_importance || '[]');
-      const filtersHurdle = JSON.parse(view.filters_hurdle || '[]');
+      // フィルター情報のパース
+      const filterDue = view.filter_due ? [view.filter_due] : [];
+      const filtersImportance = Array.isArray(view.filters_importance) 
+        ? view.filters_importance 
+        : JSON.parse(view.filters_importance || '[]');
+      const filtersHurdle = Array.isArray(view.filters_hurdle)
+        ? view.filters_hurdle
+        : JSON.parse(view.filters_hurdle || '[]');
 
-      // レスポンスデータの構築
+      // フロントエンドの期待する形式に整形
       const formattedView = {
         id: view.id,
         name: view.name,
-        view_key: view.view_key,
-        visible: view.visible === 1,
-        view_order: view.view_order,
         filters: {
-          due: {
-            value: filterDue?.value || '',
-            operator: filterDue?.operator || 'eq'
-          },
-          importance: filtersImportance.map((imp: string) => ({
-            value: imp,
-            selected: true
-          })),
-          hurdle: filtersHurdle.map((hurdle: number) => ({
-            value: hurdle,
-            selected: true
-          }))
-        },
-        created_at: view.created_at,
-        updated_at: view.updated_at
+          due: filterDue,
+          importance: filtersImportance,
+          hurdle: filtersHurdle
+        }
       };
 
       console.log('カスタムビュー詳細:', {
