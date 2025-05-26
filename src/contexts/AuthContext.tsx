@@ -107,6 +107,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
+          // メール認証チェックを追加
+          if (!user.emailVerified) {
+            console.log('❌ 未認証ユーザー - 強制ログアウト');
+            await signOut(auth);
+            return;
+          }
+          
           await initializeUserData(user);
         }
         setUser(user);
@@ -117,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       }
     });
-
+  
     return () => unsubscribe();
   }, []);
 
