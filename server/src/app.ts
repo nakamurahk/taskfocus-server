@@ -1317,3 +1317,34 @@ app.patch('/user-settings/medication-config', authenticateToken, async (req, res
     res.status(500).json({ error: 'サーバーエラー', details: err });
   }
 });
+
+// ルートエンドポイント
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'TaskFocus Server is running',
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ヘルスチェックエンドポイント
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// エラーハンドリング
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  logger.error('アプリケーションエラー:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
+// サーバーの起動
+const PORT = parseInt(process.env.PORT || '3001', 10);
+console.log(`Starting server on port: ${PORT}`);
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ サーバーが起動しました: http://0.0.0.0:${PORT}`);
+});
