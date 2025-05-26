@@ -107,11 +107,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
+          console.log('👤 ユーザー検出:', user.email);
+          console.log('📧 メール認証状態:', user.emailVerified);
+          
           if (!user.emailVerified) {
-            console.log('❌ 未認証ユーザー - 強制ログアウト');
-            // エラーメッセージにメール確認案内を設定
+            console.log('❌ 未認証ユーザー - setError実行');
             setError('認証メールを送信しました。メール内のリンクをクリックしてアカウントを有効化してください。※迷惑メールフォルダもご確認ください。');
+            console.log('✅ setError完了');
+            
             await signOut(auth);
+            console.log('✅ signOut完了');
             return;
           }
           
