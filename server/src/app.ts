@@ -674,12 +674,19 @@ app.patch('/focus-view-settings', authenticateToken, async (req, res) => {
       await client.query('BEGIN');
 
       for (const setting of settings) {
-        if (!setting.id || typeof setting.visible !== 'boolean' || typeof setting.view_order !== 'number') {
+        if (!setting.id || typeof setting.view_order !== 'number') {
           throw new Error('無効な設定データ');
         }
 
-        // Boolean値をIntegerに変換
-        const visibleInt = setting.visible ? 1 : 0;
+        // visibleの値を確実に0/1に変換
+        const visibleInt = setting.visible === true ? 1 : 0;
+
+        console.log('Updating setting:', {
+          id: setting.id,
+          visible: setting.visible,
+          visibleInt: visibleInt,
+          view_order: setting.view_order
+        });
 
         await client.query(`
           UPDATE focus_view_settings
