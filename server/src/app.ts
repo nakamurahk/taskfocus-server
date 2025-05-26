@@ -527,13 +527,33 @@ app.get('/focus-view-settings', authenticateToken, async (req, res) => {
   const userId = req.user.uid;
 
   try {
-    const result = await pool.query(`
-      SELECT * FROM focus_view_settings
-      WHERE user_id = $1
-      ORDER BY view_order ASC
-    `, [userId]);
+    const client = await pool.connect();
+    try {
+      // デフォルトビューを削除
+      await client.query(`
+        DELETE FROM focus_view_settings
+        WHERE user_id = $1 AND view_key = 'default'
+      `, [userId]);
 
-    res.json(result.rows);
+      // ビュー設定を取得
+      const result = await client.query(`
+        SELECT 
+          id,
+          view_key,
+          label,
+          visible,
+          view_order,
+          created_at,
+          updated_at
+        FROM focus_view_settings
+        WHERE user_id = $1
+        ORDER BY view_order ASC
+      `, [userId]);
+
+      res.json(result.rows);
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error('❌ フォーカスビュー設定取得エラー:', err);
     res.status(500).json({ error: 'サーバーエラー', details: err });
@@ -632,15 +652,34 @@ app.get('/custom-views', authenticateToken, async (req, res) => {
   const userId = req.user.uid;
 
   try {
-    const result = await pool.query(`
-      SELECT cv.*, us.focus_view_limit
-      FROM custom_focus_views cv
-      LEFT JOIN user_settings us ON us.user_id = cv.user_id
-      WHERE cv.user_id = $1
-      ORDER BY us.focus_view_limit ASC
-    `, [userId]);
+    const client = await pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT 
+          id,
+          name,
+          filter_due,
+          filters_importance,
+          filters_hurdle,
+          created_at,
+          updated_at
+        FROM custom_focus_views
+        WHERE user_id = $1
+        ORDER BY created_at DESC
+      `, [userId]);
 
-    res.json(result.rows);
+      // フィルター情報をJSONとしてパース
+      const views = result.rows.map(view => ({
+        ...view,
+        filter_due: view.filter_due ? JSON.parse(view.filter_due) : null,
+        filters_importance: JSON.parse(view.filters_importance),
+        filters_hurdle: JSON.parse(view.filters_hurdle)
+      }));
+
+      res.json(views);
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error('❌ カスタムビュー取得エラー:', err);
     res.status(500).json({ error: 'サーバーエラー', details: err });
