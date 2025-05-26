@@ -6,6 +6,7 @@ import { getAuth } from 'firebase-admin/auth';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import { Pool } from 'pg';
+import crypto from 'crypto';
 
 
 // Request型の拡張
@@ -805,7 +806,7 @@ app.post('/custom-views', authenticateToken, async (req, res) => {
     return res.status(401).json({ error: '認証が必要です' });
   }
   const userId = req.user.uid;
-  const { name, view_key, focus_view_limit } = req.body;
+  const { name, filter_due, filters_importance, filters_hurdle, focus_view_limit } = req.body;
 
   try {
     const client = await pool.connect();
@@ -814,26 +815,49 @@ app.post('/custom-views', authenticateToken, async (req, res) => {
 
       // カスタムビューの作成
       const viewResult = await client.query(`
-        INSERT INTO custom_focus_views (user_id, name, view_key)
-        VALUES ($1, $2, $3)
-        RETURNING *
-      `, [userId, name, view_key]);
-
-      // フォーカスビュー設定の作成
-      await client.query(`
-        INSERT INTO focus_view_settings (user_id, view_id, view_key, label, visible, view_order)
-        VALUES ($1, $2, $3, $4, $5, $6)
-      `, [userId, viewResult.rows[0].id, view_key, name, 1, focus_view_limit]);
+        INSERT INTO custom_focus_views (
+          id,
+          user_id,
+          name,
+          filter_due,
+          filters_importance,
+          filters_hurdle
+        ) VALUES (
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6
+        ) RETURNING *
+      `, [
+        crypto.randomUUID(), // UUIDを生成
+        userId,
+        name,
+        filter_due || null,  // 空文字列の場合はnull
+        JSON.stringify(filters_importance || []),
+        JSON.stringify(filters_hurdle || [])
+      ]);
 
       // user_settingsのfocus_view_limitを更新
-      await client.query(`
-        UPDATE user_settings
-        SET focus_view_limit = $1
-        WHERE user_id = $2
-      `, [focus_view_limit, userId]);
+      if (typeof focus_view_limit === 'number') {
+        await client.query(`
+          UPDATE user_settings
+          SET focus_view_limit = $1
+          WHERE user_id = $2
+        `, [focus_view_limit, userId]);
+      }
 
       await client.query('COMMIT');
-      res.status(201).json(viewResult.rows[0]);
+
+      // レスポンスデータの整形
+      const createdView = viewResult.rows[0];
+      res.status(201).json({
+        ...createdView,
+        filter_due: createdView.filter_due || '',
+        filters_importance: JSON.parse(createdView.filters_importance),
+        filters_hurdle: JSON.parse(createdView.filters_hurdle)
+      });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -879,15 +903,6 @@ app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
             name = $1,
             updated_at = CURRENT_TIMESTAMP
           WHERE id = $2 AND user_id = $3
-        `, [name, viewId, userId]);
-
-        // フォーカスビュー設定の更新
-        await client.query(`
-          UPDATE focus_view_settings
-          SET 
-            label = $1,
-            updated_at = CURRENT_TIMESTAMP
-          WHERE view_id = $2 AND user_id = $3
         `, [name, viewId, userId]);
       }
 
