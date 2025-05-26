@@ -1160,3 +1160,8 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   logger.error('アプリケーションエラー:', err);
   res.status(500).json({ error: 'Internal Server Error' });
 });
+
+// サーバーの起動
+app.listen(port, () => {
+  console.log(`✅ サーバーが起動しました: http://localhost:${port}`);
+});
