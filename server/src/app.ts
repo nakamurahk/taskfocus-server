@@ -631,7 +631,17 @@ app.patch('/focus-view-settings/:id', authenticateToken, async (req, res) => {
         return res.status(404).json({ error: '設定が見つかりません' });
       }
 
-      res.json(result.rows[0]);
+      // レスポンスデータの整形
+      const updatedSetting = result.rows[0];
+      res.json({
+        id: updatedSetting.id,
+        view_key: updatedSetting.view_key,
+        label: updatedSetting.label,
+        visible: updatedSetting.visible === 1,
+        view_order: updatedSetting.view_order,
+        created_at: updatedSetting.created_at,
+        updated_at: updatedSetting.updated_at
+      });
     } finally {
       client.release();
     }
@@ -671,7 +681,27 @@ app.patch('/focus-view-settings/bulk', authenticateToken, async (req, res) => {
       }
 
       await client.query('COMMIT');
-      res.json({ message: '設定の一括更新が完了しました' });
+
+      // 更新後の設定を取得
+      const result = await client.query(`
+        SELECT *
+        FROM focus_view_settings
+        WHERE user_id = $1
+        ORDER BY view_order ASC
+      `, [userId]);
+
+      // レスポンスデータの整形
+      const updatedSettings = result.rows.map(setting => ({
+        id: setting.id,
+        view_key: setting.view_key,
+        label: setting.label,
+        visible: setting.visible === 1,
+        view_order: setting.view_order,
+        created_at: setting.created_at,
+        updated_at: setting.updated_at
+      }));
+
+      res.json(updatedSettings);
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
