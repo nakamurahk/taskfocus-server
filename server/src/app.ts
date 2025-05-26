@@ -184,22 +184,22 @@ const authenticateToken = async (req: express.Request, res: express.Response, ne
         uid,
         5,              // daily_task_limit
         'default',      // theme_mode
-        false,          // medication_effect_mode_on
+        0,              // medication_effect_mode_on
         'created_at_desc', // default_sort_option
         1,              // ai_aggressiveness_level
-        true,           // is_medication_taken
+        1,              // is_medication_taken
         '08:00',        // effect_start_time
         600,            // effect_duration_minutes
         60,             // time_to_max_effect_minutes
         540,            // time_to_fade_minutes
-        true,           // ai_suggestion_enabled
-        false,          // onboarding_completed
-        true,           // show_completed_tasks
-        true,           // daily_reminder_enabled
-        true,           // show_hurdle
-        false,          // show_importance
-        false,          // show_deadline_alert
-        true,           // show_category
+        1,              // ai_suggestion_enabled
+        0,              // onboarding_completed
+        1,              // show_completed_tasks
+        1,              // daily_reminder_enabled
+        1,              // show_hurdle
+        0,              // show_importance
+        0,              // show_deadline_alert
+        1,              // show_category
         0               // viewMode
       ]);
     }
@@ -210,7 +210,7 @@ const authenticateToken = async (req: express.Request, res: express.Response, ne
       await pool.query(`
         INSERT INTO focus_view_settings (user_id, view_key, label, visible, view_order)
         VALUES ($1, $2, $3, $4, $5)
-      `, [uid, 'default', 'デフォルト', true, 0]);
+      `, [uid, 'default', 'デフォルト', 1, 0]);
     }
 
     next();
@@ -232,7 +232,7 @@ app.get('/tasks', authenticateToken, async (req, res) => {
       SELECT t.*, c.name as category_name, c.color as category_color, c.is_default as category_is_default
       FROM tasks t
       LEFT JOIN categories c ON t.category_id = c.id
-      WHERE t.user_id = $1 AND t.is_deleted = false
+      WHERE t.user_id = $1 AND t.is_deleted = 0
     `, [userId]);
     const tasks = result.rows;
     // カテゴリー情報を整形
@@ -263,9 +263,9 @@ app.post('/tasks', authenticateToken, async (req, res) => {
       user_id: userId,
       status: 'pending',
       progress: 0,
-      is_deleted: false,
-      is_today_task: req.body.is_today_task ? true : false,
-      suggested_by_ai: false,
+      is_deleted: 0,
+      is_today_task: req.body.is_today_task ? 1 : 0,
+      suggested_by_ai: 0,
       priority_score: 0.0,
       child_order: req.body.child_order !== undefined ? req.body.child_order : 0,
       task_depth: 0,
@@ -349,7 +349,7 @@ app.patch('/tasks/:id', authenticateToken, async (req, res) => {
       fields.push(`updated_at = CURRENT_TIMESTAMP`);
       values.push(taskId);
       values.push(userId);
-      const sql = `UPDATE tasks SET ${fields.join(', ')} WHERE id = $${idx} AND user_id = $${idx + 1} AND is_deleted = false RETURNING *`;
+      const sql = `UPDATE tasks SET ${fields.join(', ')} WHERE id = $${idx} AND user_id = $${idx + 1} AND is_deleted = 0 RETURNING *`;
       const result = await client.query(sql, values);
       
       if (result.rowCount === 0) {
@@ -375,7 +375,7 @@ app.delete('/tasks/:id', authenticateToken, async (req, res) => {
   try {
     const client = await pool.connect();
     try {
-      const sql = `UPDATE tasks SET is_deleted = true, deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2`;
+      const sql = `UPDATE tasks SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2`;
       const result = await client.query(sql, [taskId, userId]);
       
       if (result.rowCount === 0) {
@@ -407,7 +407,7 @@ app.patch('/tasks/:id/toggle', authenticateToken, async (req, res) => {
           status = $1,
           completed_at = CASE WHEN $2 = 'completed' THEN CURRENT_TIMESTAMP ELSE NULL END,
           updated_at = CURRENT_TIMESTAMP
-        WHERE id = $3 AND user_id = $4 AND is_deleted = false
+        WHERE id = $3 AND user_id = $4 AND is_deleted = 0
         RETURNING *
       `;
       const result = await client.query(sql, [
@@ -472,22 +472,22 @@ app.get('/user-settings', authenticateToken, async (req, res) => {
         userId,
         5,              // daily_task_limit
         'default',      // theme_mode
-        false,          // medication_effect_mode_on
+        0,              // medication_effect_mode_on
         'created_at_desc', // default_sort_option
         1,              // ai_aggressiveness_level
-        true,           // is_medication_taken
+        1,              // is_medication_taken
         '08:00',        // effect_start_time
         600,            // effect_duration_minutes
         60,             // time_to_max_effect_minutes
         540,            // time_to_fade_minutes
-        true,           // ai_suggestion_enabled
-        false,          // onboarding_completed
-        true,           // show_completed_tasks
-        true,           // daily_reminder_enabled
-        true,           // show_hurdle
-        false,          // show_importance
-        false,          // show_deadline_alert
-        true,           // show_category
+        1,              // ai_suggestion_enabled
+        0,              // onboarding_completed
+        1,              // show_completed_tasks
+        1,              // daily_reminder_enabled
+        1,              // show_hurdle
+        0,              // show_importance
+        0,              // show_deadline_alert
+        1,              // show_category
         0               // viewMode
       ]);
       return res.json(insertResult.rows[0]);
@@ -665,7 +665,7 @@ app.patch('/tasks/reorder', authenticateToken, async (req, res) => {
         await client.query(`
           UPDATE tasks
           SET child_order = $1, updated_at = CURRENT_TIMESTAMP
-          WHERE id = $2 AND user_id = $3 AND is_deleted = false
+          WHERE id = $2 AND user_id = $3 AND is_deleted = 0
         `, [task.child_order, task.id, userId]);
       }
       await client.query('COMMIT');
@@ -697,7 +697,7 @@ app.patch('/tasks/:id/progress', authenticateToken, async (req, res) => {
       const result = await client.query(`
         UPDATE tasks
         SET progress = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $2 AND user_id = $3 AND is_deleted = false
+        WHERE id = $2 AND user_id = $3 AND is_deleted = 0
         RETURNING *
       `, [progress, taskId, userId]);
 
@@ -727,7 +727,7 @@ app.get('/tasks/:id/subtasks', authenticateToken, async (req, res) => {
       SELECT t.*, c.name as category_name, c.color as category_color, c.is_default as category_is_default
       FROM tasks t
       LEFT JOIN categories c ON t.category_id = c.id
-      WHERE t.user_id = $1 AND t.parent_task_id = $2 AND t.is_deleted = false
+      WHERE t.user_id = $1 AND t.parent_task_id = $2 AND t.is_deleted = 0
       ORDER BY t.child_order ASC
     `, [userId, parentId]);
 
@@ -774,7 +774,7 @@ app.patch('/tasks/bulk-update', authenticateToken, async (req, res) => {
       const sql = `
         UPDATE tasks
         SET ${fields.join(', ')}
-        WHERE id = ANY($${idx}) AND user_id = $${idx + 1} AND is_deleted = false
+        WHERE id = ANY($${idx}) AND user_id = $${idx + 1} AND is_deleted = 0
         RETURNING *
       `;
       const result = await client.query(sql, values);
