@@ -45,6 +45,9 @@ app.options('*', cors({
   credentials: true
 }));
 
+// JSONパーサーの設定
+app.use(express.json());
+
 (async () => {
   try {
     await initDb();
@@ -57,9 +60,6 @@ app.options('*', cors({
     console.log(`Server running on port ${port}`);
   });
 })();
-
-// JSONパーサーの設定
-app.use(express.json());
 
 // 全APIレスポンスにキャッシュ無効化ヘッダーを付与
 app.use((req, res, next) => {
