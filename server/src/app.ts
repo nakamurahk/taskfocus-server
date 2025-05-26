@@ -32,21 +32,17 @@ initializeApp({
   })
 });
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://172.25.112.66:5173',
-  'https://taskfocus-frontend.onrender.com'
-];
+const allowedOrigin = 'https://taskfocus-frontend.onrender.com';
 
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
+  origin: allowedOrigin,
+  credentials: true
+}));
+
+// プリフライト対応（OPTIONS）
+app.options('*', cors({
+  origin: allowedOrigin,
+  credentials: true
 }));
 
 (async () => {
