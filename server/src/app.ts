@@ -570,9 +570,11 @@ app.get('/custom-views', authenticateToken, async (req, res) => {
 
   try {
     const result = await pool.query(`
-      SELECT * FROM custom_focus_views
-      WHERE user_id = $1
-      ORDER BY display_order ASC
+      SELECT cv.*, us.display_order
+      FROM custom_focus_views cv
+      LEFT JOIN user_settings us ON us.user_id = cv.user_id
+      WHERE cv.user_id = $1
+      ORDER BY us.display_order ASC
     `, [userId]);
 
     res.json(result.rows);
@@ -597,16 +599,23 @@ app.post('/custom-views', authenticateToken, async (req, res) => {
 
       // カスタムビューの作成
       const viewResult = await client.query(`
-        INSERT INTO custom_focus_views (user_id, name, view_key, display_order)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO custom_focus_views (user_id, name, view_key)
+        VALUES ($1, $2, $3)
         RETURNING *
-      `, [userId, name, view_key, display_order]);
+      `, [userId, name, view_key]);
 
       // フォーカスビュー設定の作成
       await client.query(`
         INSERT INTO focus_view_settings (user_id, view_id, view_key, label, visible, view_order)
         VALUES ($1, $2, $3, $4, $5, $6)
       `, [userId, viewResult.rows[0].id, view_key, name, 1, display_order]);
+
+      // user_settingsのdisplay_orderを更新
+      await client.query(`
+        UPDATE user_settings
+        SET display_order = $1
+        WHERE user_id = $2
+      `, [display_order, userId]);
 
       await client.query('COMMIT');
       res.status(201).json(viewResult.rows[0]);
@@ -641,11 +650,10 @@ app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
         UPDATE custom_focus_views
         SET 
           name = $1,
-          display_order = $2,
           updated_at = CURRENT_TIMESTAMP
-        WHERE id = $3 AND user_id = $4
+        WHERE id = $2 AND user_id = $3
         RETURNING *
-      `, [name, display_order, viewId, userId]);
+      `, [name, viewId, userId]);
 
       if (viewResult.rowCount === 0) {
         await client.query('ROLLBACK');
@@ -661,6 +669,13 @@ app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
           updated_at = CURRENT_TIMESTAMP
         WHERE view_id = $3 AND user_id = $4
       `, [name, display_order, viewId, userId]);
+
+      // user_settingsのdisplay_orderを更新
+      await client.query(`
+        UPDATE user_settings
+        SET display_order = $1
+        WHERE user_id = $2
+      `, [display_order, userId]);
 
       await client.query('COMMIT');
       res.json(viewResult.rows[0]);
