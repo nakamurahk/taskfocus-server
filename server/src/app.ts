@@ -807,8 +807,8 @@ app.patch('/user-settings', authenticateToken, async (req, res) => {
         
         // Boolean値をIntegerに変換
         let value = updates[key];
-        if (key === 'show_importance' || key === 'show_deadline_alert' || key === 'show_category') {
-          value = value ? 1 : 0;
+        if (typeof value === 'boolean' || value === 'true' || value === 'false') {
+          value = value === true || value === 'true' ? 1 : 0;
         }
         
         fields.push(`${fieldName} = $${idx}`);
