@@ -912,11 +912,19 @@ app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
     try {
       await client.query('BEGIN');
 
+      // custom_プレフィックスを除去
+      const cleanViewId = viewId.startsWith('custom_') ? viewId.slice(7) : viewId;
+      console.log('リクエストされたID:', viewId);
+      console.log('クリーンなID:', cleanViewId);
+      console.log('ユーザーID:', userId);
+
       // カスタムビューの存在確認
       const viewCheck = await client.query(`
         SELECT id FROM custom_focus_views
         WHERE id = $1 AND user_id = $2
-      `, [viewId, userId]);
+      `, [cleanViewId, userId]);
+
+      console.log('存在確認結果:', viewCheck.rows);
 
       if (viewCheck.rowCount === 0) {
         await client.query('ROLLBACK');
@@ -939,7 +947,7 @@ app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
         filter_due || null,
         JSON.stringify(filters_importance || []),
         JSON.stringify(filters_hurdle || []),
-        viewId,
+        cleanViewId,
         userId
       ]);
 
@@ -950,7 +958,7 @@ app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
           label = $1,
           updated_at = CURRENT_TIMESTAMP
         WHERE view_key = $2 AND user_id = $3
-      `, [name, `custom_${viewId}`, userId]);
+      `, [name, `custom_${cleanViewId}`, userId]);
 
       await client.query('COMMIT');
 
@@ -1349,6 +1357,12 @@ app.get('/custom-views/:id', authenticateToken, async (req, res) => {
   try {
     const client = await pool.connect();
     try {
+      // custom_プレフィックスを除去
+      const cleanViewId = viewId.startsWith('custom_') ? viewId.slice(7) : viewId;
+      console.log('リクエストされたID:', viewId);
+      console.log('クリーンなID:', cleanViewId);
+      console.log('ユーザーID:', userId);
+
       // カスタムビューの情報を取得
       const result = await client.query(`
         SELECT 
@@ -1365,7 +1379,9 @@ app.get('/custom-views/:id', authenticateToken, async (req, res) => {
         FROM custom_focus_views cfv
         LEFT JOIN focus_view_settings fvs ON fvs.view_key = CONCAT('custom_', cfv.id)
         WHERE cfv.id = $1 AND cfv.user_id = $2
-      `, [viewId, userId]);
+      `, [cleanViewId, userId]);
+
+      console.log('クエリ結果:', result.rows);
 
       if (result.rowCount === 0) {
         return res.status(404).json({ error: 'カスタムビューが見つかりません' });
