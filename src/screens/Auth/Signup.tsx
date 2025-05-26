@@ -6,7 +6,7 @@ const Signup: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false); // 追加: 登録成功状態
   const { user, signup, error: authError, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -21,14 +21,17 @@ const Signup: React.FC = () => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
+      // パスワードが一致しない場合のエラー処理（実装が必要）
       console.error('パスワードが一致しません');
       return;
     }
 
     try {
       await signup(email, password);
+      // 修正: 登録成功したらメール認証待ち状態にする
       setSignupSuccess(true);
     } catch (err) {
+      // エラーはAuthContextで処理される
       console.error('Signup error:', err);
     }
   };
