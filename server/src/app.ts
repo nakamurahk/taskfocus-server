@@ -333,7 +333,13 @@ app.patch('/tasks/:id', authenticateToken, async (req, res) => {
         if (key === 'memo') {
           fields.push(`${key} = $${idx}`);
           values.push(updates[key] === '' ? null : updates[key]);  // 空文字列の場合はnullに
-        } else {
+        }
+        // due_dateフィールドの特別処理
+        else if (key === 'due_date') {
+          fields.push(`${key} = $${idx}`);
+          values.push(updates[key] === '' ? null : updates[key]);  // 空文字列の場合はnullに
+        }
+        else {
           fields.push(`${key} = $${idx}`);
           values.push(updates[key]);
         }
@@ -366,6 +372,7 @@ app.patch('/tasks/:id', authenticateToken, async (req, res) => {
       res.json({
         ...updatedTask,
         memo: updatedTask.memo || '',  // nullの場合は空文字列に変換
+        due_date: updatedTask.due_date || '',  // nullの場合は空文字列に変換
         updated_at: updatedTask.updated_at
       });
     } finally {
