@@ -33,15 +33,20 @@ initializeApp({
 
 const allowedOrigin = 'https://taskfocus-frontend.onrender.com';
 
+// CORSの設定を修正
 app.use(cors({
   origin: allowedOrigin,
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // プリフライト対応（OPTIONS）
 app.options('*', cors({
   origin: allowedOrigin,
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // JSONパーサーの設定
@@ -659,12 +664,20 @@ app.patch('/focus-view-settings', authenticateToken, async (req, res) => {
   const userId = req.user.uid;
   const { settings } = req.body;
 
+  if (!settings || !Array.isArray(settings)) {
+    return res.status(400).json({ error: '無効なリクエストデータ' });
+  }
+
   try {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
       for (const setting of settings) {
+        if (!setting.id || typeof setting.visible !== 'boolean' || typeof setting.view_order !== 'number') {
+          throw new Error('無効な設定データ');
+        }
+
         await client.query(`
           UPDATE focus_view_settings
           SET 
