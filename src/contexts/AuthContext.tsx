@@ -6,8 +6,9 @@ import {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithRedirect,  // 変更: signInWithPopup → signInWithRedirect
-  getRedirectResult,   // 追加: リダイレクト結果を取得
+  signInWithPopup,  // redirectからpopupに戻す
+  // signInWithRedirect,  // 一時的にコメントアウト
+  // getRedirectResult,   // 一時的にコメントアウト
   OAuthProvider,
   sendEmailVerification,
   applyActionCode,
@@ -120,23 +121,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  // 追加: リダイレクト結果をチェック
-  useEffect(() => {
-    const checkRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          console.log('Google認証成功:', result.user);
-          // 認証成功時の処理は既存のonAuthStateChangedで処理される
-        }
-      } catch (error) {
-        console.error('リダイレクト認証エラー:', error);
-        setError('Google認証中にエラーが発生しました');
-      }
-    };
-    
-    checkRedirectResult();
-  }, []);
+  // リダイレクト結果チェックを一時的にコメントアウト
+  // useEffect(() => {
+  //   const checkRedirectResult = async () => {
+  //     try {
+  //       const result = await getRedirectResult(auth);
+  //       if (result) {
+  //         console.log('Google認証成功:', result.user);
+  //       }
+  //     } catch (error) {
+  //       console.error('リダイレクト認証エラー:', error);
+  //       setError('Google認証中にエラーが発生しました');
+  //     }
+  //   };
+  //   
+  //   checkRedirectResult();
+  // }, []);
 
   const signup = async (email: string, password: string, name: string) => {
     try {
@@ -191,13 +191,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // 変更: signInWithPopup → signInWithRedirect
+  // popup方式に戻したGoogle認証
   const loginWithGoogle = async () => {
     try {
       setLoading(true);
       setError(null);
       const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      // popupに戻してテスト
+      const result = await signInWithPopup(auth, provider);
+      console.log('Google認証成功:', result.user);
     } catch (error) {
       console.error('Google login error:', error);
       setError(error instanceof Error ? error.message : 'Googleログイン中にエラーが発生しました');
@@ -212,7 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       const provider = new OAuthProvider('apple.com');
-      await signInWithRedirect(auth, provider);  // こちらもredirectに変更
+      await signInWithPopup(auth, provider);  // popupのまま
     } catch (error) {
       console.error('Apple login error:', error);
       setError(error instanceof Error ? error.message : 'Appleログイン中にエラーが発生しました');
