@@ -570,11 +570,11 @@ app.get('/custom-views', authenticateToken, async (req, res) => {
 
   try {
     const result = await pool.query(`
-      SELECT cv.*, us.display_order
+      SELECT cv.*, us.focus_view_limit
       FROM custom_focus_views cv
       LEFT JOIN user_settings us ON us.user_id = cv.user_id
       WHERE cv.user_id = $1
-      ORDER BY us.display_order ASC
+      ORDER BY us.focus_view_limit ASC
     `, [userId]);
 
     res.json(result.rows);
@@ -590,7 +590,7 @@ app.post('/custom-views', authenticateToken, async (req, res) => {
     return res.status(401).json({ error: '認証が必要です' });
   }
   const userId = req.user.uid;
-  const { name, view_key, display_order } = req.body;
+  const { name, view_key, focus_view_limit } = req.body;
 
   try {
     const client = await pool.connect();
@@ -608,14 +608,14 @@ app.post('/custom-views', authenticateToken, async (req, res) => {
       await client.query(`
         INSERT INTO focus_view_settings (user_id, view_id, view_key, label, visible, view_order)
         VALUES ($1, $2, $3, $4, $5, $6)
-      `, [userId, viewResult.rows[0].id, view_key, name, 1, display_order]);
+      `, [userId, viewResult.rows[0].id, view_key, name, 1, focus_view_limit]);
 
-      // user_settingsのdisplay_orderを更新
+      // user_settingsのfocus_view_limitを更新
       await client.query(`
         UPDATE user_settings
-        SET display_order = $1
+        SET focus_view_limit = $1
         WHERE user_id = $2
-      `, [display_order, userId]);
+      `, [focus_view_limit, userId]);
 
       await client.query('COMMIT');
       res.status(201).json(viewResult.rows[0]);
@@ -638,7 +638,7 @@ app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
   }
   const userId = req.user.uid;
   const viewId = req.params.id;
-  const { name, display_order } = req.body;
+  const { name, focus_view_limit } = req.body;
 
   try {
     const client = await pool.connect();
@@ -676,17 +676,17 @@ app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
         `, [name, viewId, userId]);
       }
 
-      // display_orderが提供されている場合のみ更新
-      if (display_order !== undefined) {
+      // focus_view_limitが提供されている場合のみ更新
+      if (focus_view_limit !== undefined) {
         await client.query(`
           UPDATE user_settings
-          SET display_order = $1
+          SET focus_view_limit = $1
           WHERE user_id = $2
-        `, [display_order, userId]);
+        `, [focus_view_limit, userId]);
       }
 
       await client.query('COMMIT');
-      res.json({ id: viewId, name, display_order });
+      res.json({ id: viewId, name, focus_view_limit });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
