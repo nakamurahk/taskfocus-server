@@ -6,7 +6,8 @@ import {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,  // 変更: signInWithPopup → signInWithRedirect
+  getRedirectResult,   // 追加: リダイレクト結果を取得
   OAuthProvider,
   sendEmailVerification,
   applyActionCode,
@@ -119,6 +120,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
+  // 追加: リダイレクト結果をチェック
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          console.log('Google認証成功:', result.user);
+          // 認証成功時の処理は既存のonAuthStateChangedで処理される
+        }
+      } catch (error) {
+        console.error('リダイレクト認証エラー:', error);
+        setError('Google認証中にエラーが発生しました');
+      }
+    };
+    
+    checkRedirectResult();
+  }, []);
+
   const signup = async (email: string, password: string, name: string) => {
     try {
       setLoading(true);
@@ -172,12 +191,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // 変更: signInWithPopup → signInWithRedirect
   const loginWithGoogle = async () => {
     try {
       setLoading(true);
       setError(null);
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await signInWithRedirect(auth, provider);
     } catch (error) {
       console.error('Google login error:', error);
       setError(error instanceof Error ? error.message : 'Googleログイン中にエラーが発生しました');
@@ -192,7 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       const provider = new OAuthProvider('apple.com');
-      await signInWithPopup(auth, provider);
+      await signInWithRedirect(auth, provider);  // こちらもredirectに変更
     } catch (error) {
       console.error('Apple login error:', error);
       setError(error instanceof Error ? error.message : 'Appleログイン中にエラーが発生しました');
