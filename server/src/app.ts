@@ -529,49 +529,30 @@ app.get('/focus-view-settings', authenticateToken, async (req, res) => {
   try {
     const client = await pool.connect();
     try {
-      // デフォルトビューを削除
-      await client.query(`
-        DELETE FROM focus_view_settings
-        WHERE user_id = $1 AND view_key = 'default'
-      `, [userId]);
-
-      // ビュー設定とカスタムビュー情報を取得
+      // ビュー設定を取得
       const result = await client.query(`
         SELECT 
-          fvs.id,
-          fvs.view_key,
-          fvs.label,
-          fvs.visible,
-          fvs.view_order,
-          fvs.created_at,
-          fvs.updated_at,
-          cv.id as custom_view_id,
-          cv.name as custom_view_name,
-          cv.filter_due,
-          cv.filters_importance,
-          cv.filters_hurdle
-        FROM focus_view_settings fvs
-        LEFT JOIN custom_focus_views cv ON fvs.view_key = cv.id
-        WHERE fvs.user_id = $1
-        ORDER BY fvs.view_order ASC
+          id,
+          view_key,
+          label,
+          visible,
+          view_order,
+          created_at,
+          updated_at
+        FROM focus_view_settings
+        WHERE user_id = $1
+        ORDER BY view_order ASC
       `, [userId]);
 
-      // フィルター情報をJSONとしてパース
+      // レスポンスデータの整形
       const views = result.rows.map(view => ({
         id: view.id,
         view_key: view.view_key,
         label: view.label,
-        visible: view.visible,
+        visible: view.visible === 1,
         view_order: view.view_order,
         created_at: view.created_at,
-        updated_at: view.updated_at,
-        custom_view: view.custom_view_id ? {
-          id: view.custom_view_id,
-          name: view.custom_view_name,
-          filter_due: view.filter_due ? JSON.parse(view.filter_due) : null,
-          filters_importance: JSON.parse(view.filters_importance),
-          filters_hurdle: JSON.parse(view.filters_hurdle)
-        } : null
+        updated_at: view.updated_at
       }));
 
       res.json(views);
