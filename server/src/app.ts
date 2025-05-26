@@ -109,7 +109,7 @@ const defaultCategories = [
 // 初期化関数
 async function initializeDatabase() {
   try {
-    const checkCategories = await pool.query('SELECT COUNT(*) as count FROM categories WHERE is_default = true');
+    const checkCategories = await pool.query('SELECT COUNT(*) as count FROM categories WHERE is_default = 1');
     if (checkCategories.rows[0].count === '0') {
       for (const category of defaultCategories) {
         await pool.query(
@@ -191,7 +191,7 @@ const authenticateToken = async (req: express.Request, res: express.Response, ne
         '08:00',        // effect_start_time
         600,            // effect_duration_minutes
         60,             // time_to_max_effect_minutes
-        540,            // time_to_fade_minutes
+        600,            // time_to_fade_minutes
         1,              // ai_suggestion_enabled
         0,              // onboarding_completed
         1,              // show_completed_tasks
@@ -437,6 +437,7 @@ app.get('/categories', authenticateToken, async (req, res) => {
       SELECT id, name, color, is_default
       FROM categories
       WHERE user_id IS NULL OR user_id = $1
+      ORDER BY is_default DESC, name ASC
     `, [req.user?.uid]);
     
     res.json(result.rows);
