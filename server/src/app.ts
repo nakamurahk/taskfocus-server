@@ -561,6 +561,49 @@ app.patch('/focus-view-settings/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// フォーカスビュー設定の一括更新
+app.patch('/focus-view-settings/bulk', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: '認証が必要です' });
+  }
+  const userId = req.user.uid;
+  const { settings } = req.body;
+
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      for (const setting of settings) {
+        await client.query(`
+          UPDATE focus_view_settings
+          SET 
+            visible = $1,
+            view_order = $2,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = $3 AND user_id = $4
+        `, [
+          setting.visible ? 1 : 0,
+          setting.view_order,
+          setting.id,
+          userId
+        ]);
+      }
+
+      await client.query('COMMIT');
+      res.json({ message: '設定の一括更新が完了しました' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('❌ フォーカスビュー設定一括更新エラー:', err);
+    res.status(500).json({ error: 'サーバーエラー', details: err });
+  }
+});
+
 // カスタムビューの取得
 app.get('/custom-views', authenticateToken, async (req, res) => {
   if (!req.user) {
@@ -761,8 +804,15 @@ app.patch('/user-settings', authenticateToken, async (req, res) => {
       for (const key in updates) {
         // viewModeを"viewMode"に変換
         const fieldName = key === 'viewMode' ? '"viewMode"' : key;
+        
+        // Boolean値をIntegerに変換
+        let value = updates[key];
+        if (key === 'show_importance' || key === 'show_deadline_alert' || key === 'show_category') {
+          value = value ? 1 : 0;
+        }
+        
         fields.push(`${fieldName} = $${idx}`);
-        values.push(updates[key]);
+        values.push(value);
         idx++;
       }
       values.push(userId);
@@ -1051,6 +1101,43 @@ app.patch('/user-settings/medication-config', authenticateToken, async (req, res
     }
   } catch (err) {
     console.error('❌ メディケーション設定更新エラー:', err);
+    res.status(500).json({ error: 'サーバーエラー', details: err });
+  }
+});
+
+// ビューモードの更新
+app.patch('/user-settings/view-mode', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: '認証が必要です' });
+  }
+  const userId = req.user.uid;
+  const { viewMode } = req.body;
+
+  try {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(`
+        UPDATE user_settings
+        SET 
+          "viewMode" = $1,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = $2
+        RETURNING *
+      `, [
+        viewMode ? 1 : 0,
+        userId
+      ]);
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'ユーザー設定が見つかりません' });
+      }
+
+      res.json(result.rows[0]);
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('❌ ビューモード更新エラー:', err);
     res.status(500).json({ error: 'サーバーエラー', details: err });
   }
 });
