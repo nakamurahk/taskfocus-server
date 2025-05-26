@@ -22,7 +22,7 @@ const MedicationSettingsPage: React.FC = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const settings = await userSettingsApi.getSettings();
+        const settings = await userSettingsApi.getUserSettings();
         setUserSettings(settings);
       } catch (error) {
         console.error('設定の取得に失敗しました:', error);
