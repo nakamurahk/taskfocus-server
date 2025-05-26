@@ -21,7 +21,7 @@ declare global {
 dotenv.config();
 
 const app = express();
-const port = 5432;
+const port = const port = process.env.PORT || 3001;
 
 // Firebase Admin SDKの初期化
 initializeApp({
@@ -50,7 +50,13 @@ app.use(cors({
 }));
 
 (async () => {
-  await initDb(); // ← ここで一度だけ実行
+  try {
+    await initDb();
+    console.log('✅ DB initialized');
+  } catch (err) {
+    console.error('❌ DB init failed:', err);
+  }
+
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
