@@ -998,18 +998,24 @@ app.delete('/custom-views/:id', authenticateToken, async (req, res) => {
     try {
       await client.query('BEGIN');
 
+      // custom_プレフィックスを除去
+      const cleanViewId = viewId.startsWith('custom_') ? viewId.slice(7) : viewId;
+      console.log('リクエストされたID:', viewId);
+      console.log('クリーンなID:', cleanViewId);
+      console.log('ユーザーID:', userId);
+
       // フォーカスビュー設定の削除
       await client.query(`
         DELETE FROM focus_view_settings
-        WHERE view_id = $1 AND user_id = $2
-      `, [viewId, userId]);
+        WHERE view_key = $1 AND user_id = $2
+      `, [`custom_${cleanViewId}`, userId]);
 
       // カスタムビューの削除
       const result = await client.query(`
         DELETE FROM custom_focus_views
         WHERE id = $1 AND user_id = $2
         RETURNING *
-      `, [viewId, userId]);
+      `, [cleanViewId, userId]);
 
       if (result.rowCount === 0) {
         await client.query('ROLLBACK');
