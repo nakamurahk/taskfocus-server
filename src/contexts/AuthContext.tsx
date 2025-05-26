@@ -107,23 +107,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
-          // 新規登録直後の場合はチェックをスキップ
-          // （ユーザー作成から数秒は猶予を与える）
-          const userCreationTime = user.metadata.creationTime;
-          const now = new Date().getTime();
-          const creationTime = new Date(userCreationTime!).getTime();
-          const timeDiff = now - creationTime;
-          
-          // 作成から10秒以内は新規登録とみなしてチェックをスキップ
-          if (timeDiff < 10000) {
-            console.log('🆕 新規登録ユーザー - メール認証チェックをスキップ');
-            await signOut(auth); // それでもログアウトして登録完了画面を表示
-            return;
-          }
-          
-          // 既存ユーザーのメール認証チェック
           if (!user.emailVerified) {
             console.log('❌ 未認証ユーザー - 強制ログアウト');
+            // エラーメッセージにメール確認案内を設定
+            setError('認証メールを送信しました。メール内のリンクをクリックしてアカウントを有効化してください。※迷惑メールフォルダもご確認ください。');
             await signOut(auth);
             return;
           }
