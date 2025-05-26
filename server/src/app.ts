@@ -177,7 +177,7 @@ const authenticateToken = async (req: express.Request, res: express.Response, ne
           show_importance,
           show_deadline_alert,
           show_category,
-          viewMode
+          "viewMode"
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
         RETURNING *
       `, [
@@ -465,7 +465,7 @@ app.get('/user-settings', authenticateToken, async (req, res) => {
           time_to_max_effect_minutes, time_to_fade_minutes, ai_suggestion_enabled, onboarding_completed,
           show_completed_tasks, daily_reminder_enabled, show_hurdle, show_importance, show_deadline_alert,
           show_category,
-          viewMode
+          "viewMode"
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
         RETURNING *
       `, [
@@ -628,7 +628,9 @@ app.patch('/user-settings', authenticateToken, async (req, res) => {
       const values: any[] = [];
       let idx = 1;
       for (const key in updates) {
-        fields.push(`${key} = $${idx}`);
+        // viewModeを"viewMode"に変換
+        const fieldName = key === 'viewMode' ? '"viewMode"' : key;
+        fields.push(`${fieldName} = $${idx}`);
         values.push(updates[key]);
         idx++;
       }
