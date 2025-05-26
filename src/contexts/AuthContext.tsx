@@ -145,6 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       await sendEmailVerification(user);
+      await signOut(auth);
     } catch (error) {
       console.error('Error signing up:', error);
       setError(error instanceof Error ? error.message : 'サインアップ中にエラーが発生しました');
