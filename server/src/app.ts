@@ -665,7 +665,7 @@ app.patch('/focus-view-settings', authenticateToken, async (req, res) => {
     return res.status(401).json({ error: '認証が必要です' });
   }
   const userId = req.user.uid;
-  const { settings } = req.body;
+  const { settings, focusViewLimit } = req.body;
 
   if (!settings || !Array.isArray(settings)) {
     return res.status(400).json({ error: '無効なリクエストデータ' });
@@ -676,8 +676,18 @@ app.patch('/focus-view-settings', authenticateToken, async (req, res) => {
     try {
       await client.query('BEGIN');
 
+      // focusViewLimitの更新
+      if (typeof focusViewLimit === 'number') {
+        await client.query(`
+          UPDATE user_settings
+          SET focus_view_limit = $1
+          WHERE user_id = $2
+        `, [focusViewLimit, userId]);
+      }
+
+      // 各設定の更新
       for (const setting of settings) {
-        if (!setting.id || typeof setting.view_order !== 'number') {
+        if (!setting.view_key || typeof setting.view_order !== 'number') {
           throw new Error('無効な設定データ');
         }
 
@@ -685,7 +695,7 @@ app.patch('/focus-view-settings', authenticateToken, async (req, res) => {
         const visibleInt = setting.visible === true ? 1 : 0;
 
         console.log('Updating setting:', {
-          id: setting.id,
+          view_key: setting.view_key,
           visible: setting.visible,
           visibleInt: visibleInt,
           view_order: setting.view_order
@@ -697,12 +707,12 @@ app.patch('/focus-view-settings', authenticateToken, async (req, res) => {
             visible = $1,
             view_order = $2,
             updated_at = CURRENT_TIMESTAMP
-          WHERE id = $3 AND user_id = $4
+          WHERE user_id = $3 AND view_key = $4
         `, [
           visibleInt,
           setting.view_order,
-          setting.id,
-          userId
+          userId,
+          setting.view_key
         ]);
       }
 
