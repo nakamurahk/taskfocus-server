@@ -499,7 +499,69 @@ app.get('/user-settings', authenticateToken, async (req, res) => {
   }
 });
 
-// カスタムビュー関連のエンドポイント
+// フォーカスビュー設定の取得
+app.get('/focus-view-settings', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: '認証が必要です' });
+  }
+  const userId = req.user.uid;
+
+  try {
+    const result = await pool.query(`
+      SELECT * FROM focus_view_settings
+      WHERE user_id = $1
+      ORDER BY view_order ASC
+    `, [userId]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('❌ フォーカスビュー設定取得エラー:', err);
+    res.status(500).json({ error: 'サーバーエラー', details: err });
+  }
+});
+
+// フォーカスビュー設定の更新
+app.patch('/focus-view-settings/:id', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: '認証が必要です' });
+  }
+  const userId = req.user.uid;
+  const settingId = req.params.id;
+  const { visible, view_order } = req.body;
+
+  try {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(`
+        UPDATE focus_view_settings
+        SET 
+          visible = $1,
+          view_order = $2,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3 AND user_id = $4
+        RETURNING *
+      `, [
+        visible ? 1 : 0,
+        view_order,
+        settingId,
+        userId
+      ]);
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: '設定が見つかりません' });
+      }
+
+      res.json(result.rows[0]);
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('❌ フォーカスビュー設定更新エラー:', err);
+    res.status(500).json({ error: 'サーバーエラー', details: err });
+  }
+});
+
+// カスタムビューの取得
 app.get('/custom-views', authenticateToken, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: '認証が必要です' });
@@ -512,6 +574,7 @@ app.get('/custom-views', authenticateToken, async (req, res) => {
       WHERE user_id = $1
       ORDER BY display_order ASC
     `, [userId]);
+
     res.json(result.rows);
   } catch (err) {
     console.error('❌ カスタムビュー取得エラー:', err);
@@ -519,6 +582,7 @@ app.get('/custom-views', authenticateToken, async (req, res) => {
   }
 });
 
+// カスタムビューの作成
 app.post('/custom-views', authenticateToken, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: '認証が必要です' });
@@ -530,13 +594,22 @@ app.post('/custom-views', authenticateToken, async (req, res) => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const result = await client.query(`
+
+      // カスタムビューの作成
+      const viewResult = await client.query(`
         INSERT INTO custom_focus_views (user_id, name, view_key, display_order)
         VALUES ($1, $2, $3, $4)
         RETURNING *
       `, [userId, name, view_key, display_order]);
+
+      // フォーカスビュー設定の作成
+      await client.query(`
+        INSERT INTO focus_view_settings (user_id, view_id, view_key, label, visible, view_order)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [userId, viewResult.rows[0].id, view_key, name, 1, display_order]);
+
       await client.query('COMMIT');
-      res.status(201).json(result.rows[0]);
+      res.status(201).json(viewResult.rows[0]);
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -549,6 +622,61 @@ app.post('/custom-views', authenticateToken, async (req, res) => {
   }
 });
 
+// カスタムビューの更新
+app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: '認証が必要です' });
+  }
+  const userId = req.user.uid;
+  const viewId = req.params.id;
+  const { name, display_order } = req.body;
+
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // カスタムビューの更新
+      const viewResult = await client.query(`
+        UPDATE custom_focus_views
+        SET 
+          name = $1,
+          display_order = $2,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3 AND user_id = $4
+        RETURNING *
+      `, [name, display_order, viewId, userId]);
+
+      if (viewResult.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'カスタムビューが見つかりません' });
+      }
+
+      // フォーカスビュー設定の更新
+      await client.query(`
+        UPDATE focus_view_settings
+        SET 
+          label = $1,
+          view_order = $2,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE view_id = $3 AND user_id = $4
+      `, [name, display_order, viewId, userId]);
+
+      await client.query('COMMIT');
+      res.json(viewResult.rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('❌ カスタムビュー更新エラー:', err);
+    res.status(500).json({ error: 'サーバーエラー', details: err });
+  }
+});
+
+// カスタムビューの削除
 app.delete('/custom-views/:id', authenticateToken, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: '認証が必要です' });
@@ -560,8 +688,25 @@ app.delete('/custom-views/:id', authenticateToken, async (req, res) => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      await client.query('DELETE FROM focus_view_settings WHERE view_id = $1 AND user_id = $2', [viewId, userId]);
-      await client.query('DELETE FROM custom_focus_views WHERE id = $1 AND user_id = $2', [viewId, userId]);
+
+      // フォーカスビュー設定の削除
+      await client.query(`
+        DELETE FROM focus_view_settings
+        WHERE view_id = $1 AND user_id = $2
+      `, [viewId, userId]);
+
+      // カスタムビューの削除
+      const result = await client.query(`
+        DELETE FROM custom_focus_views
+        WHERE id = $1 AND user_id = $2
+        RETURNING *
+      `, [viewId, userId]);
+
+      if (result.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'カスタムビューが見つかりません' });
+      }
+
       await client.query('COMMIT');
       res.status(204).send();
     } catch (err) {
@@ -572,43 +717,6 @@ app.delete('/custom-views/:id', authenticateToken, async (req, res) => {
     }
   } catch (err) {
     console.error('❌ カスタムビュー削除エラー:', err);
-    res.status(500).json({ error: 'サーバーエラー', details: err });
-  }
-});
-
-app.patch('/custom-views/reorder', authenticateToken, async (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ error: '認証が必要です' });
-  }
-  const userId = req.user.uid;
-  const { views } = req.body;
-
-  try {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const view of views) {
-        await client.query(`
-          UPDATE custom_focus_views
-          SET display_order = $1
-          WHERE id = $2 AND user_id = $3
-        `, [view.display_order, view.id, userId]);
-      }
-      await client.query('COMMIT');
-      const result = await client.query(`
-        SELECT * FROM custom_focus_views
-        WHERE user_id = $1
-        ORDER BY display_order ASC
-      `, [userId]);
-      res.json(result.rows);
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
-    }
-  } catch (err) {
-    console.error('❌ カスタムビュー並び替えエラー:', err);
     res.status(500).json({ error: 'サーバーエラー', details: err });
   }
 });
