@@ -221,9 +221,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       provider.setCustomParameters({
         prompt: 'select_account'
       });
-      // popupに戻してテスト
       const result = await signInWithPopup(auth, provider);
       console.log('Google認証成功:', result.user);
+      
+      // ユーザーデータの初期化
+      await initializeUserData(result.user);
+      
+      // 初期データの作成
+      await createInitialData(result.user.uid);
+      
     } catch (error) {
       console.error('Google login error:', error);
       setError(error instanceof Error ? error.message : 'Googleログイン中にエラーが発生しました');
