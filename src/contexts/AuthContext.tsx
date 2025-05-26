@@ -156,17 +156,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('🔄 ログイン開始:', email);
       setLoading(true);
       setError(null);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
+  
+      console.log('✅ ログイン成功');
+      console.log('📧 メール認証状態:', user.emailVerified);
+  
       if (!user.emailVerified) {
+        console.log('❌ メール認証未完了 - ログアウト実行');
         setError('メールアドレスの認証が完了していません。認証メールをご確認ください。');
         await signOut(auth);
         return false;
       }
-
+  
+      console.log('✅ メール認証済み - ログイン許可');
       return true;
     } catch (error) {
       console.error('Error logging in:', error);
