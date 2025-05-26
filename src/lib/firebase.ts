@@ -1,5 +1,13 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence, onIdTokenChanged } from 'firebase/auth';
+import { 
+  getAuth, 
+  setPersistence, 
+  browserLocalPersistence, 
+  onIdTokenChanged,
+  GoogleAuthProvider,  // 追加
+  signInWithPopup,     // 追加
+  signOut             // 追加
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { useAppStore } from './useAppStore';
 
@@ -36,4 +44,30 @@ onIdTokenChanged(auth, (user) => {
   }
 });
 
+// Google認証プロバイダーの設定
+export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
+// Google認証用の関数
+export const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error) {
+    console.error('Google認証エラー:', error);
+    throw error;
+  }
+};
+
+// ログアウト関数
+export const logout = async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error('ログアウトエラー:', error);
+    throw error;
+  }
+};
 export default app; 
