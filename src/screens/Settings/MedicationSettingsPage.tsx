@@ -18,28 +18,28 @@ const MedicationSettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const [peakTime, setPeakTime] = useState({ start: '', end: '' });
 
-  // 初回マウント時、ストアにデータがなければAPIから取得
-//  useEffect(() => {
-//    const fetchSettings = async () => {
+ //初回マウント時、ストアにデータがなければAPIから取得
+   useEffect(() => {
+    const fetchSettings = async () => {
      // userSettings が既に存在する場合はAPIを呼ばない
- //     if (userSettings) {
- //       return;
- //     }
+     if (userSettings) {
+        return;
+      }
       
-//      try {
-//        const settings = await userSettingsApi.getUserSettings();
-//        setUserSettings(settings);
-//      } catch (error) {
-//        console.error('設定の取得に失敗しました:', error);
+      try {
+        const settings = await userSettingsApi.getUserSettings();
+        setUserSettings(settings);
+      } catch (error) {
+        console.error('設定の取得に失敗しました:', error);
         // デフォルト値を設定
-//        setUserSettings({
-//          medication_effect_mode_on: 0,
-//          effect_start_time: '08:00',
-//          effect_duration_minutes: 600,
-//          time_to_max_effect_minutes: 60
-//        });
-//      }
-//    };
+        setUserSettings({
+          medication_effect_mode_on: 0,
+          effect_start_time: '08:00',
+          effect_duration_minutes: 600,
+          time_to_max_effect_minutes: 60
+        });
+    }
+    };
 
 //    fetchSettings();
 //  }, []);
