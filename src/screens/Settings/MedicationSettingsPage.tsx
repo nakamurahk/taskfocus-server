@@ -41,8 +41,8 @@ const MedicationSettingsPage: React.FC = () => {
     }
     };
 
-//    fetchSettings();
-//  }, []);
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     if (userSettings) {
