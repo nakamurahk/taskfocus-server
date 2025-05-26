@@ -652,7 +652,7 @@ app.patch('/focus-view-settings/:id', authenticateToken, async (req, res) => {
 });
 
 // フォーカスビュー設定の一括更新
-app.patch('/focus-view-settings/bulk', authenticateToken, async (req, res) => {
+app.patch('/focus-view-settings', authenticateToken, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: '認証が必要です' });
   }
@@ -684,7 +684,14 @@ app.patch('/focus-view-settings/bulk', authenticateToken, async (req, res) => {
 
       // 更新後の設定を取得
       const result = await client.query(`
-        SELECT *
+        SELECT 
+          id,
+          view_key,
+          label,
+          visible,
+          view_order,
+          created_at,
+          updated_at
         FROM focus_view_settings
         WHERE user_id = $1
         ORDER BY view_order ASC
