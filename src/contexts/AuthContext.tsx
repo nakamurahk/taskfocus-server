@@ -182,6 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       await signOut(auth);
+
     } catch (error) {
       console.error('Error logging out:', error);
       setError(error instanceof Error ? error.message : 'ログアウト中にエラーが発生しました');
