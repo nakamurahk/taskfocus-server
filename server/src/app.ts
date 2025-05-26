@@ -645,40 +645,48 @@ app.patch('/custom-views/:id', authenticateToken, async (req, res) => {
     try {
       await client.query('BEGIN');
 
-      // カスタムビューの更新
-      const viewResult = await client.query(`
-        UPDATE custom_focus_views
-        SET 
-          name = $1,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = $2 AND user_id = $3
-        RETURNING *
-      `, [name, viewId, userId]);
+      // カスタムビューの存在確認
+      const viewCheck = await client.query(`
+        SELECT id FROM custom_focus_views
+        WHERE id = $1 AND user_id = $2
+      `, [viewId, userId]);
 
-      if (viewResult.rowCount === 0) {
+      if (viewCheck.rowCount === 0) {
         await client.query('ROLLBACK');
         return res.status(404).json({ error: 'カスタムビューが見つかりません' });
       }
 
-      // フォーカスビュー設定の更新
-      await client.query(`
-        UPDATE focus_view_settings
-        SET 
-          label = $1,
-          view_order = $2,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE view_id = $3 AND user_id = $4
-      `, [name, display_order, viewId, userId]);
+      // nameが提供されている場合のみ更新
+      if (name) {
+        await client.query(`
+          UPDATE custom_focus_views
+          SET 
+            name = $1,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = $2 AND user_id = $3
+        `, [name, viewId, userId]);
 
-      // user_settingsのdisplay_orderを更新
-      await client.query(`
-        UPDATE user_settings
-        SET display_order = $1
-        WHERE user_id = $2
-      `, [display_order, userId]);
+        // フォーカスビュー設定の更新
+        await client.query(`
+          UPDATE focus_view_settings
+          SET 
+            label = $1,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE view_id = $2 AND user_id = $3
+        `, [name, viewId, userId]);
+      }
+
+      // display_orderが提供されている場合のみ更新
+      if (display_order !== undefined) {
+        await client.query(`
+          UPDATE user_settings
+          SET display_order = $1
+          WHERE user_id = $2
+        `, [display_order, userId]);
+      }
 
       await client.query('COMMIT');
-      res.json(viewResult.rows[0]);
+      res.json({ id: viewId, name, display_order });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
