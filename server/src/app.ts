@@ -200,13 +200,13 @@ const authenticateToken = async (req: express.Request, res: express.Response, ne
     // ★ focus_view_settingsの初期化
     const settings = await pool.query('SELECT view_key FROM focus_view_settings WHERE user_id = $1', [uid]);
     const existingKeys = settings.rows.map(row => row.view_key);
-    const requiredKeys = ['toray', 'deadline'];
+    const requiredKeys = ['today', 'deadline'];
     const missingKeys = requiredKeys.filter(key => !existingKeys.includes(key));
 
     if (missingKeys.length > 0) {
       const insertValues = missingKeys.map((key) => {
-        const label = key === 'toray' ? '今日の締め切り' : '期限を過ぎたタスク';
-        const order = key === 'toray' ? 1 : 2;
+        const label = key === 'today' ? '今日の締め切り' : '期限を過ぎたタスク';
+        const order = key === 'today' ? 1 : 2;
         return `($1, '${key}', '${label}', 1, ${order})`;
       }).join(',');
 
@@ -549,17 +549,17 @@ app.get('/focus-view-settings', authenticateToken, async (req, res) => {
       const checkResult = await client.query(`
         SELECT view_key 
         FROM focus_view_settings 
-        WHERE user_id = $1 AND view_key IN ('toray', 'deadline')
+        WHERE user_id = $1 AND view_key IN ('today', 'deadline')
       `, [userId]);
 
       const existingKeys = checkResult.rows.map(row => row.view_key);
-      const missingKeys = ['toray', 'deadline'].filter(key => !existingKeys.includes(key));
+      const missingKeys = ['today', 'deadline'].filter(key => !existingKeys.includes(key));
 
       // 存在しないビューキーに対して初期値を登録
       if (missingKeys.length > 0) {
         const insertValues = missingKeys.map((key, index) => {
-          const label = key === 'toray' ? '今日の締め切り' : '期限を過ぎたタスク';
-          const order = key === 'toray' ? 1 : 2;
+          const label = key === 'today' ? '今日の締め切り' : '期限を過ぎたタスク';
+          const order = key === 'today' ? 1 : 2;
           return `($1, '${key}', '${label}', 1, ${order}, CURRENT_TIMESTAMP)`;
         }).join(',');
 
@@ -1287,17 +1287,15 @@ app.patch('/user-settings/medication-config', authenticateToken, async (req, res
       const result = await client.query(`
         UPDATE user_settings
         SET 
-          medication_effect_mode_on = $1,
-          is_medication_taken = $2,
-          effect_start_time = $3,
-          effect_duration_minutes = $4,
-          time_to_max_effect_minutes = $5,
-          time_to_fade_minutes = $6,
+          is_medication_taken = $1,
+          effect_start_time = $2,
+          effect_duration_minutes = $3,
+          time_to_max_effect_minutes = $4,
+          time_to_fade_minutes = $5,
           updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $7
+        WHERE user_id = $6
         RETURNING *
       `, [
-        medication_effect_mode_on ? 1 : 0,
         is_medication_taken ? 1 : 0,
         effect_start_time,
         effect_duration_minutes,
@@ -1315,72 +1313,7 @@ app.patch('/user-settings/medication-config', authenticateToken, async (req, res
       client.release();
     }
   } catch (err) {
-    console.error('❌ メディケーション設定更新エラー:', err);
+    console.error('❌ メディケーションモード更新エラー:', err);
     res.status(500).json({ error: 'サーバーエラー', details: err });
   }
-});
-
-// ビューモードの更新
-app.patch('/user-settings/view-mode', authenticateToken, async (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ error: '認証が必要です' });
-  }
-  const userId = req.user.uid;
-  const { viewMode } = req.body;
-
-  try {
-    const client = await pool.connect();
-    try {
-      const result = await client.query(`
-        UPDATE user_settings
-        SET 
-          "viewMode" = $1,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $2
-        RETURNING *
-      `, [
-        viewMode ? 1 : 0,
-        userId
-      ]);
-
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'ユーザー設定が見つかりません' });
-      }
-
-      res.json(result.rows[0]);
-    } finally {
-      client.release();
-    }
-  } catch (err) {
-    console.error('❌ ビューモード更新エラー:', err);
-    res.status(500).json({ error: 'サーバーエラー', details: err });
-  }
-});
-
-// ルートエンドポイント
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'TaskFocus Server is running',
-    status: 'healthy',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// ヘルスチェックエンドポイント
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// エラーハンドリング
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  logger.error('アプリケーションエラー:', err);
-  res.status(500).json({ error: 'Internal Server Error' });
-});
-
-// サーバーの起動
-app.listen(port, () => {
-  console.log(`✅ サーバーが起動しました: http://localhost:${port}`);
 });
