@@ -1206,6 +1206,23 @@ app.patch('/user-settings/view-mode', authenticateToken, async (req, res) => {
   }
 });
 
+// ルートエンドポイント
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'TaskFocus Server is running',
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ヘルスチェックエンドポイント
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // エラーハンドリング
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   logger.error('アプリケーションエラー:', err);
