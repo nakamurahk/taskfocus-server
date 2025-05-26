@@ -33,8 +33,7 @@ initializeApp({
 });
 
 const allowedOrigins = [
-  'https://fitty2501.xyz',
-  'https://www.fitty2501.xyz'
+  'https://taskfocus-b68eb.web.app/'
 ];
 
 // CORSの設定を修正
