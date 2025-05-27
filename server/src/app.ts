@@ -161,7 +161,7 @@ const authenticateToken = async (req: express.Request, res: express.Response, ne
     
     if (userExists.rows.length === 0) {
       // 🆕 初回のみ：全ての初期化処理
-      await initializeNewUser(uid, email, decodedToken);
+      await initializeNewUser(uid, email ?? '', decodedToken);
     }
 
     next();
