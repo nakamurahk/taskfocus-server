@@ -316,7 +316,9 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
       const newId = res.id || res.data?.id; // APIの返却値に応じて
 
       // 2. focus_view_settingsに登録（並び順は末尾、visible: true）
-      const currentViewCount = localFocusViews.length;
+      // 最新のfocus_view_settingsをAPIから取得
+      const latestFocusViews = await focusViewSettingsApi.getFocusViewSettings();
+      const currentViewCount = latestFocusViews.length;
       const newLocalFocusView = {
         view_key: newId,
         label: customName,
@@ -324,8 +326,8 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
         view_order: currentViewCount + 1,
       };
       const updatedFocusViews = [
-        ...localFocusViews.map((v, i) => ({
-          view_key: v.key || v.view_key,
+        ...latestFocusViews.map((v, i) => ({
+          view_key: v.view_key || v.key,
           label: v.label,
           visible: v.visible,
           view_order: i + 1,
