@@ -110,9 +110,9 @@ if (process.env.DATABASE_URL) {
 
 // デフォルトカテゴリーの登録
 const defaultCategories = [
-  { name: '仕事', color: '#FF6B6B', is_default: 1 },
-  { name: '私用', color: '#4ECDC4', is_default: 1 },
-  { name: 'その他', color: '#FFD93D', is_default: 1 }
+  { name: '仕事', color: '#2196F3', is_default: 1 },
+  { name: '私用', color: '#4CAF50', is_default: 1 },
+  { name: 'その他', color: '#FFB300', is_default: 1 }
 ];
 
 // 初期化関数

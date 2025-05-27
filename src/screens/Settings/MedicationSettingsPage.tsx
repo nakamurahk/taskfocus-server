@@ -111,7 +111,6 @@ const MedicationSettingsPage: React.FC = () => {
         effect_duration_minutes: Math.round(localConfig.totalEffectDuration * 60),
         time_to_max_effect_minutes: Math.round(localConfig.onsetTime * 60),
         time_to_fade_minutes: 0,
-        medication_effect_mode_on: isEffectModeOn ? 1 : 0,
         is_medication_taken: localSkipped ? 0 : 1
       };
 
