@@ -33,7 +33,8 @@ initializeApp({
 });
 
 const allowedOrigins = [
-  'https://taskfocus-b68eb.web.app/'
+  'https://taskfocus-b68eb.web.app',
+  'http://localhost:5173'
 ];
 
 // CORSの設定を修正
