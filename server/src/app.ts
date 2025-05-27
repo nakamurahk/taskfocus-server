@@ -1125,7 +1125,7 @@ app.patch('/user-settings/medication-effect-mode', authenticateToken, async (req
     return res.status(401).json({ error: '認証が必要です' });
   }
   const userId = req.user.uid;
-  const { is_medication_taken, effect_start_time, effect_duration_minutes, time_to_max_effect_minutes, time_to_fade_minutes } = req.body;
+  const { medication_effect_mode_on } = req.body;
 
   try {
     const client = await pool.connect();
@@ -1133,20 +1133,12 @@ app.patch('/user-settings/medication-effect-mode', authenticateToken, async (req
       const result = await client.query(`
         UPDATE user_settings
         SET 
-          is_medication_taken = $1,
-          effect_start_time = $2,
-          effect_duration_minutes = $3,
-          time_to_max_effect_minutes = $4,
-          time_to_fade_minutes = $5,
+          medication_effect_mode_on = $1,
           updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $6
+        WHERE user_id = $2
         RETURNING *
       `, [
-        is_medication_taken ? 1 : 0,
-        effect_start_time,
-        effect_duration_minutes,
-        time_to_max_effect_minutes,
-        time_to_fade_minutes,
+        medication_effect_mode_on ? 1 : 0,
         userId
       ]);
 

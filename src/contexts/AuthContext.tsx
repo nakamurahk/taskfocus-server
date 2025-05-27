@@ -191,7 +191,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // ユーザー設定を取得してストアに反映
       const settings = await userSettingsApi.getUserSettings();
       setUserSettings(settings);
-      await createInitialData(result.user.uid);
       
     } catch (error: any) {
       console.error('Google login error:', error);
@@ -277,67 +276,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const createInitialData = async (userId: string) => {
-    try {
-      // デフォルトカテゴリーの作成
-      await categoryApi.createCategory({
-        name: '仕事',
-        color: '#4CAF50',
-        is_default: true
-      });
-
-      // デフォルトビューの作成
-      await focusViewSettingsApi.updateFocusViewSettings([
-        {
-          view_key: 'all',
-          label: 'すべて',
-          visible: true,
-          view_order: 1
-        },
-        {
-          view_key: 'today',
-          label: '今日',
-          visible: true,
-          view_order: 2
-        },
-        {
-          view_key: 'week',
-          label: '今週',
-          visible: true,
-          view_order: 3
-        }
-      ], 3);
-    } catch (error) {
-      console.error('初期データの作成に失敗しました:', error);
-    }
-  };
-
-  const value = {
-    user,
-    loading,
-    error,
-    signup,
-    login,
-    logout,
-    loginWithGoogle,
-    loginWithApple,
-    sendVerificationEmail,
-    verifyEmail,
-    resetPassword,
-    confirmResetPassword
-  };
-
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      error,
+      signup,
+      login,
+      logout,
+      loginWithGoogle,
+      loginWithApple,
+      sendVerificationEmail,
+      verifyEmail,
+      resetPassword,
+      confirmResetPassword
+    }}>
+      {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
+// カスタムフックの定義
+const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
+
+export { useAuth };
