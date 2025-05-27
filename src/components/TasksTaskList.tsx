@@ -47,7 +47,29 @@ const TasksTaskList: React.FC<TasksTaskListProps> = ({
 }) => {
   // displaySettingsがundefinedの場合は何も描画しない
   if (!displaySettings) {
-    return null;
+    // ソート・フィルターUIの最低限の表示
+    return (
+      <div className="bg-[#F0F7FF] rounded-b-lg">
+        <div className="task-list-header p-4" style={{ width: '100%' }}>
+          <div className="flex gap-2 items-center w-full">
+            <div className="flex gap-2 flex-1">
+              <button className="sort-button">期限</button>
+              <button className="sort-button">ハードル</button>
+              <button className="sort-button">重要度</button>
+            </div>
+            <button className="filter-button">
+              <FunnelIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div className="task-list px-4">
+          <div className="p-8 text-center text-gray-400">
+            タスクがありません。<br />
+            右下のボタンからタスクを登録してタスク管理を楽しんでくださいね。
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // zustandストアからタスク一覧を取得
