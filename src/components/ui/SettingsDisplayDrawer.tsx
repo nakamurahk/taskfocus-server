@@ -316,33 +316,14 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
       const newId = res.id || res.data?.id; // APIの返却値に応じて
 
       // 2. focus_view_settingsに登録（並び順は末尾、visible: true）
-      // 最新のfocus_view_settingsをAPIから取得
-      const latestFocusViews = await focusViewSettingsApi.getFocusViewSettings();
-      const currentViewCount = latestFocusViews.length;
+      const currentViewCount = localFocusViews.length;
       const newLocalFocusView = {
-        view_key: newId,
+        key: newId,
         label: customName,
         visible: true,
-        view_order: currentViewCount + 1,
+        order: currentViewCount + 1,
       };
-      const updatedFocusViews = [
-        ...latestFocusViews.map((v, i) => ({
-          view_key: v.view_key || v.key,
-          label: v.label,
-          visible: v.visible,
-          view_order: i + 1,
-        })),
-        newLocalFocusView
-      ];
-      await focusViewSettingsApi.updateFocusViewSettings(updatedFocusViews);
-      setLocalFocusViews(updatedFocusViews.map(v => ({
-        key: v.view_key,
-        label: v.label,
-        visible: v.visible,
-        order: v.view_order,
-      })));
-
-      // 3. カスタムビュー一覧も更新
+      setLocalFocusViews([...localFocusViews, newLocalFocusView]);
       const newView = {
         id: newId,
         name: customName,
@@ -353,6 +334,22 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
         },
       };
       setCustomFocusViews([...customFocusViews, newView]);
+      // APIでfocus_view_settingsにも登録
+      const updatedFocusViews = [
+        ...localFocusViews.map((v, i) => ({
+          view_key: v.key || v.view_key,
+          label: v.label,
+          visible: v.visible,
+          view_order: i + 1,
+        })),
+        {
+          view_key: newId,
+          label: customName,
+          visible: true,
+          view_order: currentViewCount + 1,
+        }
+      ];
+      await focusViewSettingsApi.updateFocusViewSettings(updatedFocusViews);
 
       setSaved(false);
       setIsCustomModalOpen(false);
