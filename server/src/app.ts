@@ -601,7 +601,7 @@ app.get('/focus-view-settings', authenticateToken, async (req, res) => {
           cfv.filters_hurdle
         FROM focus_view_settings fvs
         LEFT JOIN custom_focus_views cfv
-          ON fvs.view_key = cfv.id
+          ON fvs.view_key = CONCAT('custom_', cfv.id)
         WHERE fvs.user_id = $1
         ORDER BY fvs.view_order ASC
       `, [userId]);
@@ -615,9 +615,9 @@ app.get('/focus-view-settings', authenticateToken, async (req, res) => {
         view_order: view.view_order,
         created_at: view.created_at,
         updated_at: view.updated_at,
-        filter_due: view.filter_due,
-        filters_importance: view.filters_importance,
-        filters_hurdle: view.filters_hurdle
+        filter_due: view.filter_due ? [view.filter_due] : [],
+        filters_importance: view.filters_importance ? JSON.parse(view.filters_importance) : [],
+        filters_hurdle: view.filters_hurdle ? JSON.parse(view.filters_hurdle) : []
       }));
 
       res.json(views);

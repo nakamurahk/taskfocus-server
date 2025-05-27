@@ -289,13 +289,13 @@ const Tasks: React.FC = () => {
                 const filters = {
                   due: Array.isArray(customView.filters.due)
                     ? customView.filters.due
-                    : (typeof customView.filters.due === 'string' ? JSON.parse(customView.filters.due || '[]') : []),
+                    : (customView.filters.due ? [customView.filters.due] : []),
                   importance: Array.isArray(customView.filters.importance)
                     ? customView.filters.importance
-                    : (typeof customView.filters.importance === 'string' ? JSON.parse(customView.filters.importance || '[]') : []),
+                    : (customView.filters.importance ? [customView.filters.importance] : []),
                   hurdle: Array.isArray(customView.filters.hurdle)
                     ? customView.filters.hurdle
-                    : (typeof customView.filters.hurdle === 'string' ? JSON.parse(customView.filters.hurdle || '[]') : []),
+                    : (customView.filters.hurdle ? [customView.filters.hurdle] : []),
                 };
                 // すべてのフィルターが空なら何も表示しない
                 const isAllFiltersEmpty = filters.due.length === 0 && filters.importance.length === 0 && filters.hurdle.length === 0;
