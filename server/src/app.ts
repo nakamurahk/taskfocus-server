@@ -586,19 +586,24 @@ app.get('/focus-view-settings', authenticateToken, async (req, res) => {
         `, [userId]);
       }
 
-      // ビュー設定を取得
+      // ビュー設定を取得（custom_focus_viewsとLEFT JOINしてfilter_due等も取得）
       const result = await client.query(`
         SELECT 
-          id,
-          view_key,
-          label,
-          visible,
-          view_order,
-          created_at,
-          updated_at
-        FROM focus_view_settings
-        WHERE user_id = $1
-        ORDER BY view_order ASC
+          fvs.id,
+          fvs.view_key,
+          fvs.label,
+          fvs.visible,
+          fvs.view_order,
+          fvs.created_at,
+          fvs.updated_at,
+          cfv.filter_due,
+          cfv.filters_importance,
+          cfv.filters_hurdle
+        FROM focus_view_settings fvs
+        LEFT JOIN custom_focus_views cfv
+          ON fvs.view_key = cfv.id
+        WHERE fvs.user_id = $1
+        ORDER BY fvs.view_order ASC
       `, [userId]);
 
       // レスポンスデータの整形
@@ -609,7 +614,10 @@ app.get('/focus-view-settings', authenticateToken, async (req, res) => {
         visible: view.visible === 1,
         view_order: view.view_order,
         created_at: view.created_at,
-        updated_at: view.updated_at
+        updated_at: view.updated_at,
+        filter_due: view.filter_due,
+        filters_importance: view.filters_importance,
+        filters_hurdle: view.filters_hurdle
       }));
 
       res.json(views);

@@ -297,6 +297,19 @@ const Tasks: React.FC = () => {
                     ? customView.filters.hurdle
                     : (typeof customView.filters.hurdle === 'string' ? JSON.parse(customView.filters.hurdle || '[]') : []),
                 };
+                // すべてのフィルターが空なら何も表示しない
+                const isAllFiltersEmpty = filters.due.length === 0 && filters.importance.length === 0 && filters.hurdle.length === 0;
+                if (isAllFiltersEmpty) {
+                  return (
+                    <FocusViewSection
+                      key={view.key}
+                      icon={<span>🛠️</span>}
+                      label={<h3 className="text-[#B88B4A] font-bold text-lg">{view.label}</h3>}
+                    >
+                      <div className="text-gray-400 text-center py-6">フィルター条件が未設定です</div>
+                    </FocusViewSection>
+                  );
+                }
                 return (
                   <FocusViewSection
                     key={view.key}
@@ -310,30 +323,34 @@ const Tasks: React.FC = () => {
                           // dueフィルタ
                           if (filters.due.length > 0) {
                             const today = new Date();
-                            if (filters.due.includes('today')) {
-                              if (!task.due_date) return false;
-                              const dueDate = new Date(task.due_date);
-                              if (today.toDateString() !== dueDate.toDateString()) return false;
+                            let dueMatched = false;
+                            for (const cond of filters.due) {
+                              if (cond === 'today') {
+                                if (task.due_date) {
+                                  const dueDate = new Date(task.due_date);
+                                  if (today.toDateString() === dueDate.toDateString()) dueMatched = true;
+                                }
+                              } else if (cond === 'within_week') {
+                                if (task.due_date) {
+                                  const dueDate = new Date(task.due_date);
+                                  const diff = (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+                                  if (diff >= 0 && diff <= 7) dueMatched = true;
+                                }
+                              } else if (cond === 'within_month') {
+                                if (task.due_date) {
+                                  const dueDate = new Date(task.due_date);
+                                  if (dueDate.getMonth() === today.getMonth() && dueDate.getFullYear() === today.getFullYear()) dueMatched = true;
+                                }
+                              } else if (cond === 'overdue') {
+                                if (task.due_date) {
+                                  const dueDate = new Date(task.due_date);
+                                  if (dueDate < today) dueMatched = true;
+                                }
+                              } else if (cond === 'none') {
+                                if (!task.due_date) dueMatched = true;
+                              }
                             }
-                            if (filters.due.includes('within_week')) {
-                              if (!task.due_date) return false;
-                              const dueDate = new Date(task.due_date);
-                              const diff = (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-                              if (diff < 0 || diff > 7) return false;
-                            }
-                            if (filters.due.includes('within_month')) {
-                              if (!task.due_date) return false;
-                              const dueDate = new Date(task.due_date);
-                              if (dueDate.getMonth() !== today.getMonth() || dueDate.getFullYear() !== today.getFullYear()) return false;
-                            }
-                            if (filters.due.includes('overdue')) {
-                              if (!task.due_date) return false;
-                              const dueDate = new Date(task.due_date);
-                              if (dueDate >= today) return false;
-                            }
-                            if (filters.due.includes('none')) {
-                              if (task.due_date) return false;
-                            }
+                            if (!dueMatched) return false;
                           }
                           // importanceフィルタ
                           if (filters.importance.length > 0 && !filters.importance.includes(task.importance)) {
