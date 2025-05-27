@@ -159,63 +159,15 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
   const handleViewSave = async () => {
     setLoading(true);
     try {
-      // 重複を自動除去
-      const uniqueViews = localFocusViews.filter(
-        (view, index, self) => self.findIndex(v => v.key === view.key) === index
-      );
-
-      // DBに既に存在するカスタムビューのidとnameリストを取得
-      const dbCustomViews = await customViewApi.getCustomViews();
-      const dbCustomViewIds = dbCustomViews.map((v: { id: string }) => v.id);
-      const dbCustomViewNames = dbCustomViews.map((v: { name: string }) => v.name);
-
-      // 1. 新規カスタムビュー（idがDBに存在せず、nameも重複しないもの）のみ保存
-      for (const customView of customFocusViews) {
-        const isAlreadyInDB = dbCustomViewIds.includes(customView.id);
-        const isNameDuplicate = dbCustomViewNames.includes(customView.name);
-        if (!isAlreadyInDB && !isNameDuplicate) {
-          await customViewApi.addCustomView({
-            name: customView.name,
-            filter_due: customView.filters.due.length > 0 ? customView.filters.due[0] : '',
-            filters_importance: customView.filters.importance,
-            filters_hurdle: customView.filters.hurdle,
-          });
-        }
-      }
-      // 2. ビュー設定をfocus_view_settingsに保存
-      await focusViewSettingsApi.updateFocusViewSettings(
-        uniqueViews.map((v, i) => ({
-          view_key: v.key,
-          label: v.label,
-          visible: v.visible,
-          view_order: i + 1,
-        })),
-        localFocusViewLimit
-      );
+      // focus_view_settingsの更新のみ
+      const updatedFocusViews = localFocusViews.map((v, i) => ({
+        view_key: v.key || v.view_key,
+        label: v.label,
+        visible: v.visible,
+        view_order: i + 1,
+      }));
+      await focusViewSettingsApi.updateFocusViewSettings(updatedFocusViews, localFocusViewLimit);
       setFocusViewLimit(localFocusViewLimit);
-      // 3. 保存後、両方のテーブルを再取得してzustandとlocal stateを上書き
-      const settings = await focusViewSettingsApi.getFocusViewSettings();
-      setLocalFocusViews(settings.map((v: any) => ({
-        key: v.view_key,
-        label: v.label,
-        visible: !!v.visible,
-        order: v.view_order,
-      })));
-      setCustomFocusViews(settings.filter((v: any) => v.view_key.length > 10).map((v: any) => ({
-        id: v.view_key,
-        name: v.label,
-        filters: {
-          due: v.filter_due ? [v.filter_due] : [],
-          importance: Array.isArray(v.filters_importance) ? v.filters_importance : JSON.parse(v.filters_importance || '[]'),
-          hurdle: Array.isArray(v.filters_hurdle) ? v.filters_hurdle : JSON.parse(v.filters_hurdle || '[]'),
-        },
-      })));
-      setFocusViewSettings(settings.map((v: any) => ({
-        key: v.view_key,
-        label: v.label,
-        visible: !!v.visible,
-        order: v.view_order,
-      })));
       setSaved(true);
       setTimeout(() => setSaved(false), 1200);
       onClose();
@@ -353,37 +305,62 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
     if (!isCustomViewValid) return;
     if (customFocusViews.length >= 3) return;
 
-    // ローカルに一時保存（DBには反映しない）
-    const newView = {
-      id: uuidv4(), // 一時的なID
-      name: customName,
-      filters: {
-        due: customDue,
-        importance: customImportance,
-        hurdle: customHurdle,
-      },
-    };
+    try {
+      // 1. custom_focus_viewsに登録
+      const res = await customViewApi.addCustomView({
+        name: customName,
+        filter_due: customDue.length > 0 ? customDue[0] : '',
+        filters_importance: customImportance,
+        filters_hurdle: customHurdle,
+      });
+      const newId = res.id || res.data?.id; // APIの返却値に応じて
 
-    // ローカルのビュー一覧に追加
-    const newLocalFocusView = {
-      key: newView.id,
-      label: newView.name,
-      visible: true,
-      order: localFocusViews.length + 1,
-    };
+      // 2. focus_view_settingsに登録（並び順は末尾、visible: true）
+      const newLocalFocusView = {
+        view_key: newId,
+        label: customName,
+        visible: true,
+        view_order: localFocusViews.length + 1,
+      };
+      const updatedFocusViews = [
+        ...localFocusViews.map((v, i) => ({
+          view_key: v.key || v.view_key,
+          label: v.label,
+          visible: v.visible,
+          view_order: i + 1,
+        })),
+        newLocalFocusView
+      ];
+      await focusViewSettingsApi.updateFocusViewSettings(updatedFocusViews);
+      setLocalFocusViews(updatedFocusViews.map(v => ({
+        key: v.view_key,
+        label: v.label,
+        visible: v.visible,
+        order: v.view_order,
+      })));
 
-    setLocalFocusViews([...localFocusViews, newLocalFocusView]);
-    setCustomFocusViews([...customFocusViews, newView]);
+      // 3. カスタムビュー一覧も更新
+      const newView = {
+        id: newId,
+        name: customName,
+        filters: {
+          due: customDue,
+          importance: customImportance,
+          hurdle: customHurdle,
+        },
+      };
+      setCustomFocusViews([...customFocusViews, newView]);
 
-    // 保存ボタンを有効化
-    setSaved(false);
-
-    // モーダルを閉じて入力フィールドをリセット
-    setIsCustomModalOpen(false);
-    setCustomName('');
-    setCustomDue([]);
-    setCustomImportance([]);
-    setCustomHurdle([]);
+      setSaved(false);
+      setIsCustomModalOpen(false);
+      setCustomName('');
+      setCustomDue([]);
+      setCustomImportance([]);
+      setCustomHurdle([]);
+    } catch (error) {
+      console.error('カスタムビューの追加に失敗しました:', error);
+      toast.error('カスタムビューの追加に失敗しました');
+    }
   };
 
   const handleModalClose = () => {
@@ -700,7 +677,7 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
                       <button
                         key={opt}
                         type="button"
-                        onClick={() => setCustomDue([opt])}
+                        onClick={() => setCustomDue(customDue.includes(opt) ? [] : [opt])}
                         className={`flex-1 px-3 py-1 rounded-lg border text-sm font-medium cursor-pointer transition-colors duration-150 ${customDue.includes(opt) ? 'bg-blue-100 border-blue-400 text-blue-700' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-blue-50'}`}
                       >
                         {opt === 'today' ? '今日' : '明日'}
@@ -712,7 +689,7 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
                       <button
                         key={opt}
                         type="button"
-                        onClick={() => setCustomDue([opt])}
+                        onClick={() => setCustomDue(customDue.includes(opt) ? [] : [opt])}
                         className={`flex-1 px-3 py-1 rounded-lg border text-sm font-medium cursor-pointer transition-colors duration-150 ${customDue.includes(opt) ? 'bg-blue-100 border-blue-400 text-blue-700' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-blue-50'}`}
                       >
                         {opt === 'within_week' ? '今週' : '今月'}
@@ -724,7 +701,7 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
                       <button
                         key={opt}
                         type="button"
-                        onClick={() => setCustomDue([opt])}
+                        onClick={() => setCustomDue(customDue.includes(opt) ? [] : [opt])}
                         className={`flex-1 px-3 py-1 rounded-lg border text-sm font-medium cursor-pointer transition-colors duration-150 ${customDue.includes(opt) ? 'bg-blue-100 border-blue-400 text-blue-700' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-blue-50'}`}
                       >
                         {opt === 'overdue' ? '期限切れ' : '期限なし'}

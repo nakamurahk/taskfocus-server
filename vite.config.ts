@@ -42,6 +42,16 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     commonjsOptions: {
       transformMixedEsModules: true
+    },
+    cssCodeSplit: true,  // CSSの分割を有効化
+    cssMinify: 'light',  // 最小限の圧縮を適用
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui': ['@headlessui/react', '@radix-ui/react-checkbox', '@radix-ui/react-separator', '@radix-ui/react-slot']
+        }
+      }
     }
   }
 });

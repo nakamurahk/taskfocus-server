@@ -3,7 +3,7 @@ import { useAppStore } from '../lib/useAppStore';
 import { Task } from '../types/task';
 import { formatDateForDisplay } from '../utils/dateUtils';
 import { parseISO } from 'date-fns';
-import { Menu, Transition } from '@headlessui/react';
+import { Menu, Transition, Dialog } from '@headlessui/react';
 import { Fragment } from 'react';
 import { MoreVertical, Edit, Trash2 } from 'lucide-react';
 import EditTaskModal from '../components/EditTaskModal';
@@ -122,7 +122,7 @@ const TasksTaskItem: React.FC<TasksTaskItemProps> = ({
   const { userSettings } = useAppStore();
   const isCompleted = task.status === 'completed';
 
-  const { state,gestureHandlers } = useGestureReducer({
+  const { state, gestureHandlers } = useGestureReducer({
     onTap: () => {
       // GPTによるタスク分解機能を一時的に無効化
       // setIsExpanded(prev => !prev)
@@ -136,6 +136,8 @@ const TasksTaskItem: React.FC<TasksTaskItemProps> = ({
           id: `task-${task.id}-add`,
         });
         handleAddToToday();
+      } else if (dir === 'left') {
+        setIsDeleteModalOpen(true);
       }
     }
   });
@@ -306,14 +308,67 @@ const TasksTaskItem: React.FC<TasksTaskItemProps> = ({
         />
       )}
 
-      {isDeleteModalOpen && (
-        <DeleteTaskModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onConfirm={() => onTaskDelete(task.id)}
-          taskName={task.name}
-        />
-      )}
+      <Transition appear show={isDeleteModalOpen} as={Fragment}>
+        <Dialog as="div" className="fixed inset-0 z-50 overflow-y-auto" onClose={() => setIsDeleteModalOpen(false)}>
+          <div className="min-h-screen px-4 text-center">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <div className="fixed inset-0 bg-black bg-opacity-30" />
+            </Transition.Child>
+
+            <span className="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
+
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                  タスクの削除
+                </Dialog.Title>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-500">
+                    「{task.name}」を削除してもよろしいですか？
+                  </p>
+                </div>
+
+                <div className="mt-4 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
+                    onClick={() => setIsDeleteModalOpen(false)}
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-500"
+                    onClick={() => {
+                      onTaskDelete(task.id);
+                      setIsDeleteModalOpen(false);
+                      toast.success('タスクを削除しました');
+                    }}
+                  >
+                    削除
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition>
     </>
   );
 };

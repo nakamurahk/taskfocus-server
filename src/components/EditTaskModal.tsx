@@ -359,10 +359,10 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, task, on
             <div className="flex gap-3 mt-8 sticky bottom-0 bg-white pt-2 pb-1 z-10 px-2">
               <button
                 type="button"
-                className="flex-1 px-4 py-2 rounded-md bg-red-500 text-white font-bold hover:bg-red-600"
-                onClick={handleDelete}
+                onClick={onClose}
+                className="flex-1 px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors font-semibold"
               >
-                削除
+                キャンセル
               </button>
               <button
                 type="submit"

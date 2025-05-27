@@ -72,6 +72,19 @@ const QuickAddTaskModal: React.FC<QuickAddTaskModalProps> = ({ isOpen, onClose }
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setTaskName('');
+      setDueDate(new Date());
+      setSelectedCategoryId(undefined);
+      setHurdleLevel(1);
+      setShowDetails(false);
+      setEstimatedDuration(30);
+      setImportance('medium');
+      setIsTodayTask(false);
+    }
+  }, [isOpen]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskName.trim() || !user) return;
