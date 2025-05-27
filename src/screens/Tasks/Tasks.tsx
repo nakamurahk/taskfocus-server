@@ -307,6 +307,7 @@ const Tasks: React.FC = () => {
                       {filteredTasks
                         .filter(task => {
                           if (task.status === 'completed') return false;
+                          // dueフィルタ
                           if (filters.due.length > 0) {
                             const today = new Date();
                             if (filters.due.includes('today')) {
@@ -325,14 +326,32 @@ const Tasks: React.FC = () => {
                               const dueDate = new Date(task.due_date);
                               if (dueDate.getMonth() !== today.getMonth() || dueDate.getFullYear() !== today.getFullYear()) return false;
                             }
+                            if (filters.due.includes('overdue')) {
+                              if (!task.due_date) return false;
+                              const dueDate = new Date(task.due_date);
+                              if (dueDate >= today) return false;
+                            }
+                            if (filters.due.includes('none')) {
+                              if (task.due_date) return false;
+                            }
                           }
+                          // importanceフィルタ
                           if (filters.importance.length > 0 && !filters.importance.includes(task.importance)) {
                             return false;
                           }
+                          // hurdleフィルタ
                           if (filters.hurdle.length > 0 && !filters.hurdle.includes(task.hurdle_level ?? -1)) {
                             return false;
                           }
                           return true;
+                        })
+                        .sort((a, b) => {
+                          if (a.due_date && b.due_date) {
+                            return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+                          }
+                          if (!a.due_date) return 1;
+                          if (!b.due_date) return -1;
+                          return 0;
                         })
                         .slice(0, focusViewLimit)
                         .map(task => (
