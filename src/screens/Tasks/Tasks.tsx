@@ -285,102 +285,130 @@ const Tasks: React.FC = () => {
               } else {
                 const customView = customFocusViews.find(v => v.id === view.key);
                 if (!customView) return null;
-                // filtersを必ず配列に変換
-                const filters = {
-                  due: Array.isArray(customView.filters.due)
-                    ? customView.filters.due
-                    : (customView.filters.due ? [customView.filters.due] : []),
-                  importance: Array.isArray(customView.filters.importance)
-                    ? customView.filters.importance
-                    : (customView.filters.importance ? [customView.filters.importance] : []),
-                  hurdle: Array.isArray(customView.filters.hurdle)
-                    ? customView.filters.hurdle
-                    : (customView.filters.hurdle ? [customView.filters.hurdle] : []),
-                };
-                // すべてのフィルターが空なら何も表示しない
-                const isAllFiltersEmpty = filters.due.length === 0 && filters.importance.length === 0 && filters.hurdle.length === 0;
-                if (isAllFiltersEmpty) {
-                  return (
-                    <FocusViewSection
-                      key={view.key}
-                      icon={<span>🛠️</span>}
-                      label={<h3 className="text-[#B88B4A] font-bold text-lg">{view.label}</h3>}
-                    >
-                      <div className="text-gray-400 text-center py-6">フィルター条件が未設定です</div>
-                    </FocusViewSection>
-                  );
+                // 型安全・全ケース対応のフィルタリング
+                const dueRaw = customView.filters.due;
+                let dueValue: string = '';
+                if (Array.isArray(dueRaw)) {
+                  dueValue = dueRaw[0] ?? '';
+                } else {
+                  dueValue = dueRaw ?? '';
                 }
+                const importanceArr: string[] = Array.isArray(customView.filters.importance)
+                  ? customView.filters.importance
+                  : [];
+                const hurdleArr: number[] = Array.isArray(customView.filters.hurdle)
+                  ? customView.filters.hurdle
+                  : [];
+
+                let baseTasks = tasks.filter(task => {
+                  // ステータス
+                  if (task.status === 'completed') return false;
+
+                  // 期限フィルタ
+                  if (!dueValue || dueValue === '') {
+                    // 未設定→全タスク
+                  } else if (dueValue === 'none') {
+                    if (task.due_date) return false;
+                  } else {
+                    if (!task.due_date) return false;
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const dueDate = new Date(task.due_date);
+                    dueDate.setHours(0, 0, 0, 0);
+                    if (dueValue === 'today' && dueDate > today) return false;
+                    if (dueValue === 'within_week') {
+                      const endOfWeek = new Date(today);
+                      endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+                      endOfWeek.setHours(23, 59, 59, 999);
+                      if (dueDate > endOfWeek) return false;
+                    }
+                    if (dueValue === 'within_month') {
+                      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                      endOfMonth.setHours(23, 59, 59, 999);
+                      if (dueDate > endOfMonth) return false;
+                    }
+                    if (dueValue === 'overdue' && dueDate >= today) return false;
+                  }
+
+                  // 重要度フィルタ
+                  if (importanceArr.length > 0 && !importanceArr.includes(task.importance)) return false;
+
+                  // ハードルフィルタ
+                  if (hurdleArr.length > 0 && !hurdleArr.includes(task.hurdle_level ?? -1)) return false;
+
+                  return true;
+                });
+                // その後、重要度・ハードルでANDフィルタ
+                baseTasks = baseTasks.filter(task => {
+                  if (task.status === 'completed') {
+                    console.log('除外: completed', task);
+                    return false;
+                  }
+                  // eslint-disable-next-line
+                  if (importanceArr.length > 0 && !importanceArr.some(val => val == task.importance)) {
+                    console.log('除外: importance', task);
+                    return false;
+                  }
+                  // eslint-disable-next-line
+                  if (hurdleArr.length > 0 && !hurdleArr.some(val => val == (task.hurdle_level ?? -1))) {
+                    console.log('除外: hurdle', task);
+                    return false;
+                  }
+                  return true;
+                });
+                console.log('最終表示タスク:', baseTasks);
+                // フィルター条件の日本語ラベルを生成
+                const dueLabelMap: Record<string, string> = {
+                  today: '今日',
+                  within_week: '今週',
+                  within_month: '今月',
+                  overdue: '期限切れ',
+                  none: '期限なし',
+                };
+                const importanceLabelMap: Record<string, string> = {
+                  high: '高',
+                  medium: '中',
+                  low: '低',
+                };
+                const hurdleLabelMap: Record<number, string> = {
+                  1: '1',
+                  2: '2',
+                  3: '3',
+                };
+                const dueText = dueValue ? `期限:${dueLabelMap[dueValue] || dueValue}` : '';
+                const importanceText = importanceArr.length > 0 ? `重要度:${importanceArr.map(i => importanceLabelMap[i] || i).join('・')}` : '';
+                const hurdleText = hurdleArr.length > 0 ? `ハードル:${hurdleArr.map(h => hurdleLabelMap[h] || h).join('・')}` : '';
+                const filterDesc = [dueText, importanceText, hurdleText].filter(Boolean).join(', ');
                 return (
                   <FocusViewSection
                     key={view.key}
                     icon={<span>🛠️</span>}
-                    label={<h3 className="text-[#B88B4A] font-bold text-lg">{view.label}</h3>}
+                    label={<h3 className="text-[#B88B4A] font-bold text-lg">{view.label}{filterDesc && <span className="ml-2 text-xs text-gray-500">（{filterDesc}）</span>}</h3>}
                   >
                     <div className="space-y-3 mb-0 border-t border-neutral-300 mt-4 pt-4">
-                      {filteredTasks
-                        .filter(task => {
-                          if (task.status === 'completed') return false;
-                          // dueフィルタ
-                          if (filters.due.length > 0) {
-                            const today = new Date();
-                            let dueMatched = false;
-                            for (const cond of filters.due) {
-                              if (cond === 'today') {
-                                if (task.due_date) {
-                                  const dueDate = new Date(task.due_date);
-                                  if (today.toDateString() === dueDate.toDateString()) dueMatched = true;
-                                }
-                              } else if (cond === 'within_week') {
-                                if (task.due_date) {
-                                  const dueDate = new Date(task.due_date);
-                                  const diff = (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-                                  if (diff >= 0 && diff <= 7) dueMatched = true;
-                                }
-                              } else if (cond === 'within_month') {
-                                if (task.due_date) {
-                                  const dueDate = new Date(task.due_date);
-                                  if (dueDate.getMonth() === today.getMonth() && dueDate.getFullYear() === today.getFullYear()) dueMatched = true;
-                                }
-                              } else if (cond === 'overdue') {
-                                if (task.due_date) {
-                                  const dueDate = new Date(task.due_date);
-                                  if (dueDate < today) dueMatched = true;
-                                }
-                              } else if (cond === 'none') {
-                                if (!task.due_date) dueMatched = true;
-                              }
+                      {(() => {
+                        console.log('全tasks:', tasks);
+                        return baseTasks
+                          .sort((a, b) => {
+                            if (a.due_date && b.due_date) {
+                              return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
                             }
-                            if (!dueMatched) return false;
-                          }
-                          // importanceフィルタ
-                          if (filters.importance.length > 0 && !filters.importance.includes(task.importance)) {
-                            return false;
-                          }
-                          // hurdleフィルタ
-                          if (filters.hurdle.length > 0 && !filters.hurdle.includes(task.hurdle_level ?? -1)) {
-                            return false;
-                          }
-                          return true;
-                        })
-                        .sort((a, b) => {
-                          if (a.due_date && b.due_date) {
-                            return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-                          }
-                          if (!a.due_date) return 1;
-                          if (!b.due_date) return -1;
-                          return 0;
-                        })
-                        .slice(0, focusViewLimit)
-                        .map(task => (
-                          <TasksTaskItem
-                            key={task.id}
-                            task={task}
-                            displaySettings={displaySettings}
-                            onTaskUpdate={updateTask}
-                            onTaskDelete={deleteTask}
-                            onTaskToggle={toggleTask}
-                          />
-                        ))}
+                            if (!a.due_date) return 1;
+                            if (!b.due_date) return -1;
+                            return 0;
+                          })
+                          .slice(0, focusViewLimit)
+                          .map(task => (
+                            <TasksTaskItem
+                              key={task.id}
+                              task={task}
+                              displaySettings={displaySettings}
+                              onTaskUpdate={updateTask}
+                              onTaskDelete={deleteTask}
+                              onTaskToggle={toggleTask}
+                            />
+                          ));
+                      })()}
                     </div>
                   </FocusViewSection>
                 );

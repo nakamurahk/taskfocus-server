@@ -224,7 +224,7 @@ const TasksTaskItem: React.FC<TasksTaskItemProps> = ({
         {...gestureHandlers}
         // onClick={() => setIsExpanded(prev => !prev)}  // GPTによるタスク分解機能を一時的に無効化
         style={{ 
-          borderLeftColor: displaySettings?.show_category ? (task.category?.color || (task.category?.name === '仕事' ? '#2196F3' : task.category?.name === '私用' ? '#4CAF50' : task.category?.name === 'その他' ? '#FFB300' : '#FFD93D')) : 'transparent',
+          borderLeftColor: displaySettings?.show_category ? (task.category?.color || '#FFD93D') : 'transparent',
           borderLeftWidth: displaySettings?.show_category ? '4px' : '0',
           opacity: isCompleted ? 0.6 : 1,
           filter: isCompleted ? 'grayscale(100%)' : 'none',
