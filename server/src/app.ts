@@ -141,7 +141,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// 認証ミドルウェア
 const authenticateToken = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
@@ -156,86 +155,95 @@ const authenticateToken = async (req: express.Request, res: express.Response, ne
     const uid = decodedToken.uid;
     const email = decodedToken.email;
 
-    // ✅ users テーブルに存在しなければ登録
-    const checkUser = await pool.query('SELECT COUNT(*) as count FROM users WHERE id = $1', [uid]);
-    if (checkUser.rows[0].count === '0') {
-      await pool.query(
-        'INSERT INTO users (id, email, auth_provider) VALUES ($1, $2, $3)',
-        [uid, email, decodedToken.firebase?.sign_in_provider || 'email']
-      );
-
-      // ⚙️ user_settings テーブルにも初期レコード作成
-      await pool.query(`
-        INSERT INTO user_settings (
-          user_id,
-          daily_task_limit,
-          theme_mode,
-          medication_effect_mode_on,
-          default_sort_option,
-          ai_aggressiveness_level,
-          is_medication_taken,
-          effect_start_time,
-          effect_duration_minutes,
-          time_to_max_effect_minutes,
-          time_to_fade_minutes,
-          ai_suggestion_enabled,
-          onboarding_completed,
-          show_completed_tasks,
-          daily_reminder_enabled,
-          show_hurdle,
-          show_importance,
-          show_deadline_alert,
-          show_category,
-          "viewMode"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
-        RETURNING *
-      `, [
-        uid,
-        5,              // daily_task_limit
-        'default',      // theme_mode
-        0,              // medication_effect_mode_on
-        'created_at_desc', // default_sort_option
-        1,              // ai_aggressiveness_level
-        1,              // is_medication_taken
-        '08:00',        // effect_start_time
-        600,            // effect_duration_minutes
-        60,             // time_to_max_effect_minutes
-        600,            // time_to_fade_minutes
-        1,              // ai_suggestion_enabled
-        0,              // onboarding_completed
-        1,              // show_completed_tasks
-        1,              // daily_reminder_enabled
-        1,              // show_hurdle
-        0,              // show_importance
-        0,              // show_deadline_alert
-        1,              // show_category
-        0               // viewMode
-      ]);
-    }
-
-    // ★ focus_view_settingsの初期化
-    const settings = await pool.query('SELECT view_key FROM focus_view_settings WHERE user_id = $1', [uid]);
-    const existingKeys = settings.rows.map(row => row.view_key);
-    const requiredKeys = ['today', 'deadline'];
-    const missingKeys = requiredKeys.filter(key => !existingKeys.includes(key));
-
-    if (missingKeys.length > 0) {
-      const insertValues = missingKeys.map((key) => {
-        const label = key === 'today' ? '今日の締め切り' : '期限を過ぎたタスク';
-        const order = key === 'today' ? 1 : 2;
-        return `($1, '${key}', '${label}', 1, ${order})`;
-      }).join(',');
-
-      await pool.query(`
-        INSERT INTO focus_view_settings (user_id, view_key, label, visible, view_order)
-        VALUES ${insertValues}
-      `, [uid]);
+    // ✅ ユーザー存在確認のみ（1回のクエリ）
+    const userExists = await pool.query('SELECT 1 FROM users WHERE id = $1 LIMIT 1', [uid]);
+    
+    if (userExists.rows.length === 0) {
+      // 🆕 初回のみ：全ての初期化処理
+      await initializeNewUser(uid, email, decodedToken);
     }
 
     next();
   } catch (err) {
     console.error('❌ 認証エラー:', err);
     return res.status(401).json({ error: '認証に失敗しました' });
+  }
+};
+
+const initializeNewUser = async (uid: string, email: string, decodedToken: any) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // ✅ users テーブルに登録
+    await client.query(
+      'INSERT INTO users (id, email, auth_provider) VALUES ($1, $2, $3)',
+      [uid, email, decodedToken.firebase?.sign_in_provider || 'email']
+    );
+
+    // ⚙️ user_settings テーブルに初期レコード作成
+    await client.query(`
+      INSERT INTO user_settings (
+        user_id,
+        daily_task_limit,
+        theme_mode,
+        medication_effect_mode_on,
+        default_sort_option,
+        ai_aggressiveness_level,
+        is_medication_taken,
+        effect_start_time,
+        effect_duration_minutes,
+        time_to_max_effect_minutes,
+        time_to_fade_minutes,
+        ai_suggestion_enabled,
+        onboarding_completed,
+        show_completed_tasks,
+        daily_reminder_enabled,
+        show_hurdle,
+        show_importance,
+        show_deadline_alert,
+        show_category,
+        "viewMode"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+    `, [
+      uid,
+      5,              // daily_task_limit
+      'default',      // theme_mode
+      0,              // medication_effect_mode_on
+      'created_at_desc', // default_sort_option
+      1,              // ai_aggressiveness_level
+      1,              // is_medication_taken
+      '08:00',        // effect_start_time
+      600,            // effect_duration_minutes
+      60,             // time_to_max_effect_minutes
+      600,            // time_to_fade_minutes
+      1,              // ai_suggestion_enabled
+      0,              // onboarding_completed
+      1,              // show_completed_tasks
+      1,              // daily_reminder_enabled
+      1,              // show_hurdle
+      0,              // show_importance
+      0,              // show_deadline_alert
+      1,              // show_category
+      0               // viewMode
+    ]);
+
+    // ★ focus_view_settings の初期化
+    await client.query(`
+      INSERT INTO focus_view_settings (user_id, view_key, label, visible, view_order)
+      VALUES 
+        ($1, 'today', '今日の締め切り', 1, 1),
+        ($1, 'deadline', '期限を過ぎたタスク', 1, 2)
+    `, [uid]);
+
+    await client.query('COMMIT');
+    console.log(`✅ 新規ユーザー初期化完了: ${uid}`);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('❌ ユーザー初期化エラー:', error);
+    throw error;
+  } finally {
+    client.release();
   }
 };
 

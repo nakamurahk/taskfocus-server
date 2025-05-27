@@ -126,16 +126,19 @@ const Login: React.FC = () => {
               type="button"
               disabled={loading}
               onClick={handleGoogleLogin}
-              className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-500 active:bg-gray-50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-[#3c4043] hover:bg-gray-100 transition-colors active:bg-gray-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="sr-only">Googleでログイン</span>
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
-                />
+              <span className="sr-only">Googleログイン</span>
+              <svg className="w-5 h-5 mr-3" viewBox="0 0 48 48">
+                <g>
+                  <path fill="#4285F4" d="M24 9.5c3.54 0 6.36 1.53 7.82 2.81l5.8-5.8C34.64 3.36 29.74 1 24 1 14.82 1 6.98 6.98 3.69 15.09l6.77 5.25C12.13 14.09 17.56 9.5 24 9.5z"/>
+                  <path fill="#34A853" d="M46.1 24.5c0-1.64-.15-3.22-.43-4.74H24v9.01h12.42c-.54 2.9-2.18 5.36-4.65 7.01l7.19 5.59C43.98 37.36 46.1 31.36 46.1 24.5z"/>
+                  <path fill="#FBBC05" d="M10.46 28.34A14.5 14.5 0 0 1 9.5 24c0-1.51.26-2.97.72-4.34l-6.77-5.25A23.98 23.98 0 0 0 1 24c0 3.77.9 7.34 2.45 10.59l7.01-6.25z"/>
+                  <path fill="#EA4335" d="M24 46.5c6.48 0 11.92-2.15 15.89-5.86l-7.19-5.59c-2.01 1.35-4.59 2.15-8.7 2.15-6.44 0-11.87-4.59-13.54-10.59l-7.01 6.25C6.98 41.02 14.82 46.5 24 46.5z"/>
+                  <path fill="none" d="M1 1h46v46H1z"/>
+                </g>
               </svg>
-              <span className="ml-2">Google</span>
+              <span>Googleでログイン</span>
             </button>
 
             <button

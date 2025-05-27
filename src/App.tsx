@@ -8,6 +8,7 @@ import Settings from './screens/Settings/Settings';
 import MedicationSettingsPage from './screens/Settings/MedicationSettingsPage';
 import TermsPage from './screens/Settings/TermsPage';
 import PrivacyPage from './screens/Settings/PrivacyPage';
+import Help from './screens/Settings/Help';
 import Analyze from './screens/Analyze/Analyze';
 import Login from './screens/Auth/Login';
 import Signup from './screens/Auth/Signup';
@@ -106,6 +107,13 @@ const AppContent: React.FC = () => {
               <PrivateRoute>
                 <div className="flex-1 overflow-y-auto">
                   <PrivacyPage />
+                </div>
+              </PrivateRoute>
+            } />
+            <Route path="/settings/help" element={
+              <PrivateRoute>
+                <div className="flex-1 overflow-y-auto">
+                  <Help />
                 </div>
               </PrivateRoute>
             } />

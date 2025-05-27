@@ -383,7 +383,7 @@ const Tasks: React.FC = () => {
                   <FocusViewSection
                     key={view.key}
                     icon={<span>🛠️</span>}
-                    label={<h3 className="text-[#B88B4A] font-bold text-lg">{view.label}{filterDesc && <span className="ml-2 text-xs text-gray-500">（{filterDesc}）</span>}</h3>}
+                    label={<h3 className="text-[#B88B4A] font-bold text-lg">{view.label}</h3>}
                   >
                     <div className="space-y-3 mb-0 border-t border-neutral-300 mt-4 pt-4">
                       {(() => {

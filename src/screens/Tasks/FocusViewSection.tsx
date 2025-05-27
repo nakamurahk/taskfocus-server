@@ -15,7 +15,7 @@ const FocusViewSection: React.FC<FocusViewSectionProps> = ({
   children,
   visible = true,
   classNameLabel = 'flex items-center gap-2',
-  classNameList = 'mb-20',
+  classNameList = 'mb-10',
 }) => {
   if (!visible) return null;
   return (

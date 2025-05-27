@@ -49,7 +49,7 @@ const Settings: React.FC = () => {
             <SettingsItem icon="💊" label="服薬効果設定" to="/settings/medication" />
             <SettingsItem icon="📄" label="利用規約" to="/settings/terms" />
             <SettingsItem icon="🔐" label="プライバシーポリシー" to="/settings/privacy" />
-            <SettingsItem icon="💬" label="ヘルプとフィードバック" to="#" />
+            <SettingsItem icon="💬" label="ヘルプとフィードバック" to="/settings/help" />
             <a 
               href="https://note.com/inclusive2501/n/n027284f5344f"
               target="_blank"
