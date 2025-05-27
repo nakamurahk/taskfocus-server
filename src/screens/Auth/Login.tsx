@@ -138,7 +138,7 @@ const Login: React.FC = () => {
                   <path fill="none" d="M1 1h46v46H1z"/>
                 </g>
               </svg>
-              <span>Googleでログイン</span>
+              <span>Googleログイン</span>
             </button>
 
             <button

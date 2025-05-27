@@ -17,7 +17,8 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
-import { categoryApi, focusViewSettingsApi } from '../lib/api';
+import { categoryApi, focusViewSettingsApi, userSettingsApi } from '../lib/api';
+import { useAppStore } from '../lib/useAppStore';
 
 interface AuthContextType {
   user: User | null;
@@ -36,72 +37,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 初期化関数：本当に初回だけ初期データ作成＆ログ出力
-async function initializeUserData(user: User) {
+// ユーザー初期化API呼び出し
+const callInitializeNewUser = async (user: User) => {
   try {
-    let isFirst = false;
-    const userRef = doc(db, 'users', user.uid);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) {
-      await setDoc(userRef, {
-        name: user.displayName || '',
-        email: user.email,
-        createdAt: new Date().toISOString(),
-        emailVerified: user.emailVerified ?? false
-      });
-      isFirst = true;
-    }
-
-    const settingsRef = doc(db, 'user_settings', user.uid);
-    const settingsSnap = await getDoc(settingsRef);
-    if (!settingsSnap.exists()) {
-      await setDoc(settingsRef, {
-        user_id: user.uid,
-        daily_task_limit: 5,
-        theme_mode: 'default',
-        medication_effect_mode_on: 0,
-        default_sort_option: 'created_at_desc',
-        ai_aggressiveness_level: 1,
-        is_medication_taken: 1,
-        effect_start_time: '08:00',
-        effect_duration_minutes: 600,
-        time_to_max_effect_minutes: 60,
-        time_to_fade_minutes: 540,
-        ai_suggestion_enabled: 1,
-        onboarding_completed: 0,
-        show_completed_tasks: 1,
-        daily_reminder_enabled: 1,
-        viewMode: 0,
-        createdAt: new Date().toISOString()
-      });
-      isFirst = true;
-    }
-
-    const categoriesRef = doc(db, 'categories', `default_${user.uid}`);
-    const categoriesSnap = await getDoc(categoriesRef);
-    if (!categoriesSnap.exists()) {
-      await setDoc(categoriesRef, {
-        user_id: user.uid,
-        name: 'デフォルト',
-        color: '#808080',
-        is_default: true
-      });
-      isFirst = true;
-    }
-
-    if (isFirst) {
-      console.log('✅ 初期データ作成完了:', user.uid);
-    }
+    const token = await user.getIdToken();
+    await fetch('/api/auth/initialize', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log('✅ ユーザー初期化API呼び出し完了');
   } catch (error) {
-    console.error('❌ 初期化エラー:', error);
-    throw error;
+    console.error('❌ ユーザー初期化APIエラー:', error);
   }
-}
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const setUserSettings = useAppStore(s => s.setUserSettings);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -120,7 +77,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
           }
           
-          await initializeUserData(user);
+          await callInitializeNewUser(user);
+          // ユーザー設定を取得してストアに反映
+          const settings = await userSettingsApi.getUserSettings();
+          setUserSettings(settings);
         }
         setUser(user);
       } catch (err) {
@@ -227,10 +187,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const result = await signInWithPopup(auth, provider);
       console.log('Google認証成功:', result.user);
       
-      // ユーザーデータの初期化
-      await initializeUserData(result.user);
-      
-      // 初期データの作成
+      await callInitializeNewUser(result.user);
+      // ユーザー設定を取得してストアに反映
+      const settings = await userSettingsApi.getUserSettings();
+      setUserSettings(settings);
       await createInitialData(result.user.uid);
       
     } catch (error: any) {

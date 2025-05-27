@@ -32,6 +32,7 @@ initializeApp({
   })
 });
 
+
 const allowedOrigins = [
   'https://taskfocus-b68eb.web.app',
   'http://localhost:5173'
@@ -246,6 +247,12 @@ const initializeNewUser = async (uid: string, email: string, decodedToken: any) 
     client.release();
   }
 };
+
+// app.ts - 初期化専用エンドポイント
+app.post('/api/auth/initialize', authenticateToken, (req, res) => {
+  // authenticateToken内で初期化処理が実行される
+  res.json({ message: '初期化完了' });
+});
 
 // タスク関連のエンドポイント
 app.get('/tasks', authenticateToken, async (req, res) => {
@@ -516,42 +523,6 @@ app.get('/user-settings', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM user_settings WHERE user_id = $1', [userId]);
     const settings = result.rows[0];
-    if (!settings) {
-      // 初期レコードを作成
-      const insertResult = await pool.query(`
-        INSERT INTO user_settings (
-          user_id, daily_task_limit, theme_mode, medication_effect_mode_on, default_sort_option,
-          ai_aggressiveness_level, is_medication_taken, effect_start_time, effect_duration_minutes,
-          time_to_max_effect_minutes, time_to_fade_minutes, ai_suggestion_enabled, onboarding_completed,
-          show_completed_tasks, daily_reminder_enabled, show_hurdle, show_importance, show_deadline_alert,
-          show_category,
-          "viewMode"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
-        RETURNING *
-      `, [
-        userId,
-        5,              // daily_task_limit
-        'default',      // theme_mode
-        0,              // medication_effect_mode_on
-        'created_at_desc', // default_sort_option
-        1,              // ai_aggressiveness_level
-        1,              // is_medication_taken
-        '08:00',        // effect_start_time
-        600,            // effect_duration_minutes
-        60,             // time_to_max_effect_minutes
-        540,            // time_to_fade_minutes
-        1,              // ai_suggestion_enabled
-        0,              // onboarding_completed
-        1,              // show_completed_tasks
-        1,              // daily_reminder_enabled
-        1,              // show_hurdle
-        0,              // show_importance
-        0,              // show_deadline_alert
-        1,              // show_category
-        0               // viewMode
-      ]);
-      return res.json(insertResult.rows[0]);
-    }
     res.json(settings);
   } catch (err) {
     console.error('❌ PostgreSQL user_settings取得エラー:', err);
