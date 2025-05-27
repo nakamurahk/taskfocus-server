@@ -160,24 +160,30 @@ const QuickAddTaskModal: React.FC<QuickAddTaskModalProps> = ({ isOpen, onClose }
             <div>
               <h3 className="text-base font-semibold text-gray-700 mb-2 px-3 py-1.5 bg-gray-50 rounded-md">カテゴリー</h3>
               <div className="flex flex-wrap gap-2">
-                {categories.map((category) => {
-                  let displayColor = category.color;
-                  if (category.name === '仕事') displayColor = '#2196F3';
-                  else if (category.name === '私用') displayColor = '#4CAF50';
-                  else if (category.name === 'その他') displayColor = '#FFB300';
-                  return (
-                    <button
-                      key={category.id}
-                      type="button"
-                      onClick={() => setSelectedCategoryId(category.id)}
-                      className={filterModalButtonClass(selectedCategoryId === category.id, 'blue') + ' flex items-center gap-2 flex-shrink-0 whitespace-nowrap'}
-                      style={{ minWidth: 0 }}
-                    >
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: displayColor || '#ccc' }}></div>
-                      <span>{category.name}</span>
-                    </button>
-                  );
-                })}
+                {categories
+                  .slice()
+                  .sort((a, b) => {
+                    const order = { '仕事': 0, '私用': 1, 'その他': 2 };
+                    return (order[a.name as keyof typeof order] ?? 99) - (order[b.name as keyof typeof order] ?? 99);
+                  })
+                  .map((category) => {
+                    let displayColor = category.color;
+                    if (category.name === '仕事') displayColor = '#2196F3';
+                    else if (category.name === '私用') displayColor = '#4CAF50';
+                    else if (category.name === 'その他') displayColor = '#FFB300';
+                    return (
+                      <button
+                        key={category.id}
+                        type="button"
+                        onClick={() => setSelectedCategoryId(category.id)}
+                        className={filterModalButtonClass(selectedCategoryId === category.id, 'blue') + ' flex items-center gap-2 flex-shrink-0 whitespace-nowrap'}
+                        style={{ minWidth: 0 }}
+                      >
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: displayColor || '#ccc' }}></div>
+                        <span>{category.name}</span>
+                      </button>
+                    );
+                  })}
               </div>
             </div>
 
