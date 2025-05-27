@@ -184,6 +184,9 @@ const TasksTaskList: React.FC<TasksTaskListProps> = ({
     }
   }, [displaySettings]);
 
+  // 状態がpendingのタスクが0件かどうかを判定
+  const pendingTasksCount = tasks.filter(task => task.status === 'pending').length;
+
   if (isLoading) {
     return (
       <div className="task-list-header" style={{ width: '100%' }}>
@@ -271,10 +274,12 @@ const TasksTaskList: React.FC<TasksTaskListProps> = ({
         </div>
         <div className="task-list px-4">
           {filteredTasks.length === 0 ? (
-            <div className="p-8 text-center text-gray-400">
-              タスクがありません。<br />
-              右下のボタンからタスクを登録してタスク管理を楽しんでくださいね。
-            </div>
+            pendingTasksCount === 0 ? (
+              <div className="p-8 text-center text-gray-400">
+                タスクがありません。<br />
+                右下のボタンからタスクを登録してタスク管理を楽しんでくださいね。
+              </div>
+            ) : null
           ) : (
             filteredTasks.map(task => (
               <TasksTaskItem
