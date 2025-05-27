@@ -177,7 +177,6 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
   const handleViewSave = async () => {
     setLoading(true);
     try {
-      // focus_view_settingsの更新のみ
       const updatedFocusViews = localFocusViews.map((v, i) => ({
         view_key: v.key || v.view_key,
         label: v.label,
@@ -186,6 +185,14 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
       }));
       await focusViewSettingsApi.updateFocusViewSettings(updatedFocusViews, localFocusViewLimit);
       setFocusViewLimit(localFocusViewLimit);
+      // 追加: 保存後にAPIから再取得しzustandストアを最新化
+      const latest = await focusViewSettingsApi.getFocusViewSettings();
+      setFocusViewSettings(latest.map((v: any) => ({
+        key: v.view_key || v.key,
+        label: v.label,
+        visible: v.visible,
+        order: v.view_order,
+      })));
       setSaved(true);
       setTimeout(() => setSaved(false), 1200);
       onClose();
