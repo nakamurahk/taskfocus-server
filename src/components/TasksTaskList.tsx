@@ -77,7 +77,7 @@ const TasksTaskList: React.FC<TasksTaskListProps> = ({
 
   // 親タスクのみをフィルタリング
   const parentTasks = useMemo(() => {
-    return tasksCombined.filter(task => !task.parent_id);
+    return tasksCombined.filter(task => !task.parent_task_id);
   }, [tasksCombined]);
 
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -196,15 +196,6 @@ const TasksTaskList: React.FC<TasksTaskListProps> = ({
     );
   }
 
-  if (!isLoading && filteredTasks.length === 0) {
-    return (
-      <div className="p-8 text-center text-gray-400">
-        タスクがありません。<br />
-        右下のボタンからタスクを登録してタスク管理を楽しんでくださいね。
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="bg-[#F0F7FF] rounded-b-lg">
@@ -257,16 +248,23 @@ const TasksTaskList: React.FC<TasksTaskListProps> = ({
           </div>
         </div>
         <div className="task-list px-4">
-          {filteredTasks.map(task => (
-            <TasksTaskItem
-              key={task.id}
-              task={task}
-              displaySettings={displaySettings}
-              onTaskUpdate={updateTask}
-              onTaskDelete={deleteTask}
-              onTaskToggle={toggleTask}
-            />
-          ))}
+          {filteredTasks.length === 0 ? (
+            <div className="p-8 text-center text-gray-400">
+              タスクがありません。<br />
+              右下のボタンからタスクを登録してタスク管理を楽しんでくださいね。
+            </div>
+          ) : (
+            filteredTasks.map(task => (
+              <TasksTaskItem
+                key={task.id}
+                task={task}
+                displaySettings={displaySettings}
+                onTaskUpdate={updateTask}
+                onTaskDelete={deleteTask}
+                onTaskToggle={toggleTask}
+              />
+            ))
+          )}
         </div>
         <div style={{ height: '20px' }}></div>
       </div>
