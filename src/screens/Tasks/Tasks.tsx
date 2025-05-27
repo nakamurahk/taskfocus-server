@@ -285,6 +285,18 @@ const Tasks: React.FC = () => {
               } else {
                 const customView = customFocusViews.find(v => v.id === view.key);
                 if (!customView) return null;
+                // filtersを必ず配列に変換
+                const filters = {
+                  due: Array.isArray(customView.filters.due)
+                    ? customView.filters.due
+                    : (typeof customView.filters.due === 'string' ? JSON.parse(customView.filters.due || '[]') : []),
+                  importance: Array.isArray(customView.filters.importance)
+                    ? customView.filters.importance
+                    : (typeof customView.filters.importance === 'string' ? JSON.parse(customView.filters.importance || '[]') : []),
+                  hurdle: Array.isArray(customView.filters.hurdle)
+                    ? customView.filters.hurdle
+                    : (typeof customView.filters.hurdle === 'string' ? JSON.parse(customView.filters.hurdle || '[]') : []),
+                };
                 return (
                   <FocusViewSection
                     key={view.key}
@@ -295,29 +307,29 @@ const Tasks: React.FC = () => {
                       {filteredTasks
                         .filter(task => {
                           if (task.status === 'completed') return false;
-                          if (customView.filters.due.length > 0) {
+                          if (filters.due.length > 0) {
                             const today = new Date();
-                            if (customView.filters.due.includes('today')) {
+                            if (filters.due.includes('today')) {
                               if (!task.due_date) return false;
                               const dueDate = new Date(task.due_date);
                               if (today.toDateString() !== dueDate.toDateString()) return false;
                             }
-                            if (customView.filters.due.includes('within_week')) {
+                            if (filters.due.includes('within_week')) {
                               if (!task.due_date) return false;
                               const dueDate = new Date(task.due_date);
                               const diff = (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
                               if (diff < 0 || diff > 7) return false;
                             }
-                            if (customView.filters.due.includes('within_month')) {
+                            if (filters.due.includes('within_month')) {
                               if (!task.due_date) return false;
                               const dueDate = new Date(task.due_date);
                               if (dueDate.getMonth() !== today.getMonth() || dueDate.getFullYear() !== today.getFullYear()) return false;
                             }
                           }
-                          if (customView.filters.importance.length > 0 && !customView.filters.importance.includes(task.importance)) {
+                          if (filters.importance.length > 0 && !filters.importance.includes(task.importance)) {
                             return false;
                           }
-                          if (customView.filters.hurdle.length > 0 && !customView.filters.hurdle.includes(task.hurdle_level ?? -1)) {
+                          if (filters.hurdle.length > 0 && !filters.hurdle.includes(task.hurdle_level ?? -1)) {
                             return false;
                           }
                           return true;
