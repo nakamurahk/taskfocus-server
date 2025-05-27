@@ -83,6 +83,24 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
     setLocalFocusViewLimit(focusViewLimit);
   }, [initialSettings, isOpen, focusViewSettings, focusViewLimit]);
 
+  // 追加: DBから取得したビュー数を保持するstate
+  const [dbFocusViewCount, setDbFocusViewCount] = useState(0);
+
+  // 初回マウント時やfocus_view_settings取得時に件数をセット
+  useEffect(() => {
+    const fetchViews = async () => {
+      const views = await focusViewSettingsApi.getFocusViewSettings();
+      setDbFocusViewCount(views.length);
+      setLocalFocusViews(views.map((v: any, i: number) => ({
+        key: v.view_key || v.key,
+        label: v.label,
+        visible: v.visible,
+        order: v.view_order || i + 1,
+      })));
+    };
+    fetchViews();
+  }, []);
+
   // ビュー設定の取得
   useEffect(() => {
     const fetchFocusViewSettings = async () => {
@@ -316,14 +334,15 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
       const newId = res.id || res.data?.id; // APIの返却値に応じて
 
       // 2. focus_view_settingsに登録（並び順は末尾、visible: true）
-      const currentViewCount = localFocusViews.length;
+      const newViewOrder = dbFocusViewCount + 1;
       const newLocalFocusView = {
         key: newId,
         label: customName,
         visible: true,
-        order: currentViewCount + 1,
+        order: newViewOrder,
       };
       setLocalFocusViews([...localFocusViews, newLocalFocusView]);
+      setDbFocusViewCount(dbFocusViewCount + 1); // 追加後に件数も+1
       const newView = {
         id: newId,
         name: customName,
@@ -346,7 +365,7 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
           view_key: newId,
           label: customName,
           visible: true,
-          view_order: currentViewCount + 1,
+          view_order: newViewOrder,
         }
       ];
       await focusViewSettingsApi.updateFocusViewSettings(updatedFocusViews);
