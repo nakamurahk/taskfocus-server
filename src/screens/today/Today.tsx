@@ -158,7 +158,16 @@ const Today: React.FC = () => {
           const completionRate = totalTasks === 0 ? 0 : (todayCompletedCount / totalTasks) * 100;
 
           if (totalTasks === 0) {
-            return "今日のタスクを追加して、新しい一日を始めましょう！";
+            const now = new Date();
+            const hour = now.getHours();
+            
+            if (hour < 12) {
+              return "今日のタスクを追加して、新しい一日を始めましょう！";
+            } else if (hour < 18) {
+              return "今日のタスクを追加して、残りの時間を有効に使いましょう！";
+            } else {
+              return "明日のタスクを追加して、準備を整えましょう！";
+            }
           }
 
           if (completionRate === 0) {

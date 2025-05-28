@@ -36,6 +36,31 @@ const Tasks: React.FC = () => {
   const focusViewSettings = useAppStore(s => s.focusViewSettings);
   const focusViewLimit = useAppStore(s => s.focusViewLimit);
   const customFocusViews = useAppStore(s => s.customFocusViews);
+  const [rerender, setRerender] = useState(0);
+
+  // 【追加1】focusViewSettingsの変更を監視して強制再描画
+  useEffect(() => {
+    console.log('focusViewSettings changed:', focusViewSettings);
+    setRerender(prev => prev + 1);
+  }, [focusViewSettings]);
+
+  // 【追加2】Zustandストアの購読による変更検知
+  useEffect(() => {
+    console.log('Zustand subscription setup');
+    const unsubscribe = useAppStore.subscribe((state) => {
+      setRerender(prev => prev + 1);
+      return state.focusViewSettings;
+    });
+    return () => {
+      console.log('Zustand subscription cleanup');
+      unsubscribe();
+    };
+  }, []);
+
+  // 【追加3】デバッグ用：rerender値の変更をログ出力
+  useEffect(() => {
+    console.log('Rerender count updated:', rerender);
+  }, [rerender]);
 
   useEffect(() => {
     if (userSettings && userSettings.viewMode !== undefined && userSettings.viewMode !== viewMode) {

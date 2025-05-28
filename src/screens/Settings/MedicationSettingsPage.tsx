@@ -234,6 +234,7 @@ const MedicationSettingsPage: React.FC = () => {
                 </p>
               </div>
             )}
+            {/* 特別な日のセクションを一時的にコメントアウト
             <div className="bg-white rounded-lg p-4 border border-gray-200">
               <h3 className="text-base font-medium mb-4 flex items-center">
                 <span className="text-xl mr-2">📅</span>
@@ -251,6 +252,7 @@ const MedicationSettingsPage: React.FC = () => {
                 </span>
               </label>
             </div>
+            */}
             <div className="flex justify-center mt-8">
               <button
                 onClick={handleSave}

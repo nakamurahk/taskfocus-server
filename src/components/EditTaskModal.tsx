@@ -249,7 +249,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, task, on
               <div>
                 <h3 className="text-base font-semibold text-gray-700 mb-2 px-3 py-1.5 bg-gray-50 rounded-md">重要度</h3>
                 <div className="flex gap-2">
-                  {['high', 'medium', 'low'].map(opt => (
+                  {['low', 'medium', 'high'].map(opt => (
                     <button
                       key={opt}
                       type="button"

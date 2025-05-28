@@ -178,7 +178,7 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
     setLoading(true);
     try {
       const updatedFocusViews = localFocusViews.map((v, i) => ({
-        view_key: v.key || v.view_key,
+        view_key: v.key ?? v.view_key ?? '',
         label: v.label,
         visible: v.visible,
         view_order: i + 1,
@@ -187,12 +187,12 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
       setFocusViewLimit(localFocusViewLimit);
       // 追加: 保存後にAPIから再取得しzustandストアを最新化
       const latest = await focusViewSettingsApi.getFocusViewSettings();
-      setFocusViewSettings(latest.map((v: any) => ({
-        key: v.view_key || v.key,
+      setFocusViewSettings([...latest.map((v: any) => ({
+        key: v.key ?? v.view_key ?? '',
         label: v.label,
         visible: v.visible,
         order: v.view_order,
-      })));
+      }))]);
       setSaved(true);
       setTimeout(() => setSaved(false), 1200);
       onClose();
@@ -293,26 +293,7 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
       setCustomHurdle([]);
 
       // 編集後にlocalFocusViews/customFocusViewsをAPIから再取得して再同期
-      try {
-        const settings = await focusViewSettingsApi.getFocusViewSettings();
-        setLocalFocusViews(settings.map((v: any) => ({
-          key: v.view_key,
-          label: v.label,
-          visible: !!v.visible,
-          order: v.view_order,
-        })));
-        setCustomFocusViews(settings.filter((v: any) => v.view_key.length > 10).map((v: any) => ({
-          id: v.view_key,
-          name: v.label,
-          filters: {
-            due: v.filter_due ? [v.filter_due] : [],
-            importance: Array.isArray(v.filters_importance) ? v.filters_importance : JSON.parse(v.filters_importance || '[]'),
-            hurdle: Array.isArray(v.filters_hurdle) ? v.filters_hurdle : JSON.parse(v.filters_hurdle || '[]'),
-          },
-        })));
-      } catch (e) {
-        console.error('編集後のビュー再取得に失敗:', e);
-      }
+      await updateFocusViewsFromApi();
     } catch (error) {
       console.error('カスタムビューの更新に失敗しました:', error);
       // エラー時もモーダルは閉じる
@@ -363,7 +344,7 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
       // APIでfocus_view_settingsにも登録
       const updatedFocusViews = [
         ...localFocusViews.map((v, i) => ({
-          view_key: v.key || v.view_key,
+          view_key: v.key ?? v.view_key ?? '',
           label: v.label,
           visible: v.visible,
           view_order: i + 1,
@@ -376,6 +357,9 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
         }
       ];
       await focusViewSettingsApi.updateFocusViewSettings(updatedFocusViews);
+
+      // 追加: 最新ビューをAPIから取得しストアに反映
+      await updateFocusViewsFromApi();
 
       setSaved(false);
       setIsCustomModalOpen(false);
@@ -429,28 +413,7 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
       await customViewApi.deleteCustomView(view.key);
       
       // 削除後の設定を再取得
-      const settings = await focusViewSettingsApi.getFocusViewSettings();
-      setLocalFocusViews(settings.map((v: any) => ({
-        key: v.view_key,
-        label: v.label,
-        visible: !!v.visible,
-        order: v.view_order,
-      })));
-      setCustomFocusViews(settings.filter((v: any) => v.view_key.length > 10).map((v: any) => ({
-        id: v.view_key,
-        name: v.label,
-        filters: {
-          due: v.filter_due ? [v.filter_due] : [],
-          importance: Array.isArray(v.filters_importance) ? v.filters_importance : JSON.parse(v.filters_importance || '[]'),
-          hurdle: Array.isArray(v.filters_hurdle) ? v.filters_hurdle : JSON.parse(v.filters_hurdle || '[]'),
-        },
-      })));
-      setFocusViewSettings(settings.map((v: any) => ({
-        key: v.view_key,
-        label: v.label,
-        visible: !!v.visible,
-        order: v.view_order,
-      })));
+      await updateFocusViewsFromApi();
       
       handleModalClose();
       toast.success('カスタムビューを削除しました');
@@ -466,8 +429,28 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
   const isAnyConditionSelected = customDue.length > 0 || customImportance.length > 0 || customHurdle.length > 0;
   const isCustomViewValid = !isNameEmpty && !isNameTooLong && isAnyConditionSelected;
 
+  // 共通: 最新ビューをAPIから取得しストアに反映
+  const updateFocusViewsFromApi = async () => {
+    try {
+      const latest = await focusViewSettingsApi.getFocusViewSettings();
+      setFocusViewSettings([...latest.map((v: any) => ({
+        key: v.key ?? v.view_key ?? '',
+        label: v.label,
+        visible: v.visible,
+        order: v.view_order,
+      }))]);
+    } catch (e) {
+      console.error('ビュー再取得に失敗:', e);
+    }
+  };
+
+  const handleDrawerClose = async () => {
+    await updateFocusViewsFromApi();
+    onClose();
+  };
+
   return (
-    <Drawer isOpen={isOpen} onClose={onClose}>
+    <Drawer isOpen={isOpen} onClose={handleDrawerClose}>
       <div className="pt-4">
         {/* タブ切り替えUI */}
         <div className="flex mb-4 gap-2">
@@ -740,7 +723,7 @@ const SettingsDisplayDrawer: React.FC<SettingsDisplayDrawerProps> = ({ isOpen, o
               <div>
                 <h3 className="text-base font-semibold text-gray-700 mb-2 px-3 py-1.5 bg-gray-50 rounded-md">重要度</h3>
                 <div className="flex gap-2">
-                  {['high', 'medium', 'low'].map(opt => (
+                  {['low', 'medium', 'high'].map(opt => (
                     <button
                       key={opt}
                       type="button"

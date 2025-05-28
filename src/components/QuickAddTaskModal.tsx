@@ -352,9 +352,9 @@ const QuickAddTaskModal: React.FC<QuickAddTaskModalProps> = ({ isOpen, onClose }
                   <h3 className="text-base font-semibold text-gray-700 mb-2">重要度</h3>
                   <div className="flex items-center gap-2">
                     {[
-                      { level: 'high', icon: '◎', label: '高' },
+                      { level: 'low', icon: '△', label: '低' },
                       { level: 'medium', icon: '○', label: '中' },
-                      { level: 'low', icon: '△', label: '低' }
+                      { level: 'high', icon: '◎', label: '高' }
                     ].map(({ level, icon, label }) => (
                       <button
                         key={level}

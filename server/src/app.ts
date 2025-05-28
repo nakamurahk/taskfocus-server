@@ -222,10 +222,10 @@ const initializeNewUser = async (uid: string, email: string, decodedToken: any) 
       0,              // onboarding_completed
       1,              // show_completed_tasks
       1,              // daily_reminder_enabled
-      1,              // show_hurdle
+      0,              // show_hurdle
       0,              // show_importance
       0,              // show_deadline_alert
-      1,              // show_category
+      0,              // show_category
       0               // viewMode
     ]);
 
