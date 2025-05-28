@@ -110,14 +110,13 @@ const MedicationSettingsPage: React.FC = () => {
         effect_start_time: localConfig.defaultTime,
         effect_duration_minutes: Math.round(localConfig.totalEffectDuration * 60),
         time_to_max_effect_minutes: Math.round(localConfig.onsetTime * 60),
-        time_to_fade_minutes: 0,
+        time_to_fade_minutes: Math.round(localConfig.totalEffectDuration * 60),
         is_medication_taken: localSkipped ? 0 : 1
       };
 
       const updated = await userSettingsApi.updateMedicationConfig(configPayload);
 
-      setUserSettings(updated); // ← APIが返す更新後データでzustand更新
-
+      setUserSettings(updated);
       toast.success('薬効設定を保存しました');
       setHasChanges(false);
     } catch (error) {

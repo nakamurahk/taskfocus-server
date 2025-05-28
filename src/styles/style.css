@@ -239,6 +239,7 @@ body {
 .task-details {
     flex: 1;
     min-width: 0;
+    overflow: visible;
 }
 
 .task-main-info {
@@ -247,6 +248,7 @@ body {
     gap: 8px;
     flex: 1;
     min-width: 0;
+    overflow: visible;
 }
 
 .task-title {
@@ -254,6 +256,9 @@ body {
     font-size: 0.9375rem;
     color: #333;
     min-width: 0;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .task-date {
@@ -956,7 +961,6 @@ body {
 
 .task-list {
     width: 100%;
-    font-size: 0 !important;
     margin-top: 0 !important;
     padding-top: 0 !important;
     border-top: none !important;
